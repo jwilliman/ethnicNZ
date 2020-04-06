@@ -92,6 +92,7 @@ check_ethnicity <- function(data = NULL, id_col = "id", ethnicity = "ethnicity",
 #'   Yes). Other specified should be a text field with multiple ethnicities
 #'   separated by a comma.
 #' @param sep A character string used to seperate different ethnicities list in the 'Other' field.
+#' @param id_col Names of one or more variables to include in output dataset.  
 #' @param base_levels Names of input variables, as recorded in the reference dataset.
 #' @param eth_levels Names of output columns.
 
@@ -106,14 +107,27 @@ tidy_ethnicity <- function(
     "Tongan", "Niuean", "Chinese", "Indian", "Other"),
   eth_levels = c("European", "M\u0101ori", "Pacific", "Asian", "MELAA", "Other", "Residual")) {
 
+  if(is.numeric(cols))
+    cols <- names(data)[cols]
+
+  id_col_ <- id_col
+  
+  # Check   
   assertthat::assert_that(length(cols) == 10)
-
+  assertthat::assert_that(
+    length(intersect(id_col_, names(data)[1:10])) == 0
+    , msg = "id_col and cols overlap")
+  
+  
   ## Subset data to essential columns only
-  dat <- data.frame(data[, c(id_col, cols)])
-
-  if(is.character(cols))
-    cols <- match(cols, names(dat))
-
+  if(is.null(id_col)) {
+    dat <- data.frame(cbind(id = 1:nrow(data), data[, cols]))
+    id_col_ <- "id"
+  } else {
+    dat <- data.frame(data[, c(id_col_, cols)])
+  }
+    
+  cols <- match(cols, names(dat))
 
   # Initial cleaning of the dataset
   # data[,1] <- as.character(data[,1])
@@ -130,21 +144,18 @@ tidy_ethnicity <- function(
   dat[!is.na(dat$OtherSpec), rev(base_levels)[1]] <- TRUE
   dat$`Not Stated` <- rowSums(dat[, base_levels]) == 0
 
-  if(is.null(id_col)) {
-    dat$id <- 1:nrow(dat)
-    id_col <- "id"
-  }
+
 
   ## Code Standard ethnicities ----
 
   # Reshape data from wide to long, (excluding 'other' ethnicities for now)
   dat_eth_core <- reshape(
-    data = dat[,c(id_col, base_levels[1:8], "Not Stated")],
+    data = dat[,c(id_col_, base_levels[1:8], "Not Stated")],
     varying = c(base_levels[1:8], "Not Stated"), # Dataset columns containing ethnicites.
     v.names = "value",
     timevar = "l4_label",
     times = c(base_levels[1:8], "Not Stated"),
-    idvar = id_col,
+    idvar = id_col_,
     direction = "long")
 
 
@@ -153,7 +164,7 @@ tidy_ethnicity <- function(
 
 
   # Combine with reference datasets
-  dat_eth_core <- merge(dat_eth_core, ethnic05$v2, by = "l4_label")[, c(id_col, names(ethnic05$v2))]
+  dat_eth_core <- merge(dat_eth_core, ethnic05$v2, by = "l4_label")[, c(id_col_, names(ethnic05$v2))]
 
 
   ## Code Other ethnicities and merge with core ethnicities --------------------
@@ -161,10 +172,10 @@ tidy_ethnicity <- function(
   dat$OtherSpec[dat$Other & (is.na(dat$OtherSpec) | dat$Other %in% "")] <- "Other Ethnicity nec"
 
 
-  dat_eth_other <- check_ethnicity(dat, id_col = id_col, ethnicity = "OtherSpec", sep = sep)
+  dat_eth_other <- check_ethnicity(dat, id_col = id_col_, ethnicity = "OtherSpec", sep = sep)
 
   dat_eth <- suppressWarnings(dplyr::bind_rows(dat_eth_core, dat_eth_other))
-  dat_eth <- dat_eth[order(dat_eth[, id_col]),]
+  dat_eth <- dat_eth[order(dat_eth[, id_col_]),]
 
   ### Create dataset in wide format --------------------------------------------
   # dat_eth_l1w <- dat_eth %>%
@@ -173,8 +184,8 @@ tidy_ethnicity <- function(
   #   tidyr::pivot_wider("scn_id", names_from = "l1_label", values_from = "value",
   #                      values_fill = list(value = FALSE)) %>%
 
-  dat_eth_l1 <- unique(dat_eth[,c(id_col, "l1_code", "l1_label")])
-  dat_eth_l1 <- dat_eth_l1[order(dat_eth_l1$l1_code, dat_eth_l1[, id_col]),]
+  dat_eth_l1 <- unique(dat_eth[,c(id_col_, "l1_code", "l1_label")])
+  dat_eth_l1 <- dat_eth_l1[order(dat_eth_l1$l1_code, dat_eth_l1[, id_col_]),]
   dat_eth_l1$value <- TRUE
 
   levels(dat_eth_l1$l1_label) <- eth_levels
@@ -184,19 +195,22 @@ tidy_ethnicity <- function(
     drop = "l1_code",
     timevar = "l1_label",
     v.names = "value",
-    idvar   = id_col,
+    idvar   = id_col_,
     direction = "wide")
 
   # Code NA to FALSE
   dat_eth_l1w[is.na(dat_eth_l1w)] <- FALSE
-
-  # Tidy ordering and names
-  dat_eth_l1w <- data.frame(dat_eth_l1w[order(dat_eth_l1w[, id_col]),])
+  
+  # Correct column names and add missing columns
   names(dat_eth_l1w) <- gsub("value\\.", "", names(dat_eth_l1w))
+  col_miss <- setdiff(eth_levels, names(dat_eth_l1w))
+  dat_eth_l1w[col_miss] <- FALSE
+  
+  # Tidy ordering of columns and rows
+  dat_out <- data.frame(
+    dat_eth_l1w[order(dat_eth_l1w[, id_col_]), c(id_col, eth_levels)])
 
 
-
-
-  return(dat_eth_l1w)
+  return(dat_out)
 
 }
