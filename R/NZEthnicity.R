@@ -110,23 +110,17 @@ tidy_ethnicity <- function(
   if(is.numeric(cols))
     cols <- names(data)[cols]
 
-  id_col_ <- id_col
-  
   # Check   
   assertthat::assert_that(length(cols) == 10)
   assertthat::assert_that(
-    length(intersect(id_col_, names(data)[1:10])) == 0
+    length(intersect(id_col, names(data)[1:10])) == 0
     , msg = "id_col and cols overlap")
   
   
   ## Subset data to essential columns only
-  if(is.null(id_col)) {
-    dat <- data.frame(cbind(id = 1:nrow(data), data[, cols]))
-    id_col_ <- "id"
-  } else {
-    dat <- data.frame(data[, c(id_col_, cols)])
-  }
-    
+  dat <- data.frame(cbind(id = 1:nrow(data), data[, cols]))
+  id_row <- "id"
+
   cols <- match(cols, names(dat))
 
   # Initial cleaning of the dataset
@@ -150,12 +144,12 @@ tidy_ethnicity <- function(
 
   # Reshape data from wide to long, (excluding 'other' ethnicities for now)
   dat_eth_core <- reshape(
-    data = dat[,c(id_col_, base_levels[1:8], "Not Stated")],
+    data = dat[,c(id_row, base_levels[1:8], "Not Stated")],
     varying = c(base_levels[1:8], "Not Stated"), # Dataset columns containing ethnicites.
     v.names = "value",
     timevar = "l4_label",
     times = c(base_levels[1:8], "Not Stated"),
-    idvar = id_col_,
+    idvar = id_row,
     direction = "long")
 
 
@@ -164,18 +158,17 @@ tidy_ethnicity <- function(
 
 
   # Combine with reference datasets
-  dat_eth_core <- merge(dat_eth_core, ethnic05$v2, by = "l4_label")[, c(id_col_, names(ethnic05$v2))]
+  dat_eth_core <- merge(dat_eth_core, ethnic05$v2, by = "l4_label")[, c(id_row, names(ethnic05$v2))]
 
 
   ## Code Other ethnicities and merge with core ethnicities --------------------
   # If other is yes but not specified - code as such
   dat$OtherSpec[dat$Other & (is.na(dat$OtherSpec) | dat$Other %in% "")] <- "Other Ethnicity nec"
 
-
-  dat_eth_other <- check_ethnicity(dat, id_col = id_col_, ethnicity = "OtherSpec", sep = sep)
+  dat_eth_other <- check_ethnicity(dat, id_col = id_row, ethnicity = "OtherSpec", sep = sep)
 
   dat_eth <- suppressWarnings(dplyr::bind_rows(dat_eth_core, dat_eth_other))
-  dat_eth <- dat_eth[order(dat_eth[, id_col_]),]
+  dat_eth <- dat_eth[order(dat_eth[, id_row]),]
 
   ### Create dataset in wide format --------------------------------------------
   # dat_eth_l1w <- dat_eth %>%
@@ -184,8 +177,8 @@ tidy_ethnicity <- function(
   #   tidyr::pivot_wider("scn_id", names_from = "l1_label", values_from = "value",
   #                      values_fill = list(value = FALSE)) %>%
 
-  dat_eth_l1 <- unique(dat_eth[,c(id_col_, "l1_code", "l1_label")])
-  dat_eth_l1 <- dat_eth_l1[order(dat_eth_l1$l1_code, dat_eth_l1[, id_col_]),]
+  dat_eth_l1 <- unique(dat_eth[, c(id_row, "l1_code", "l1_label")])
+  dat_eth_l1 <- dat_eth_l1[order(dat_eth_l1$l1_code, dat_eth_l1[, id_row]),]
   dat_eth_l1$value <- TRUE
 
   levels(dat_eth_l1$l1_label) <- eth_levels
@@ -195,7 +188,7 @@ tidy_ethnicity <- function(
     drop = "l1_code",
     timevar = "l1_label",
     v.names = "value",
-    idvar   = id_col_,
+    idvar   = id_row,
     direction = "wide")
 
   # Code NA to FALSE
@@ -208,7 +201,7 @@ tidy_ethnicity <- function(
   
   # Tidy ordering of columns and rows
   dat_out <- data.frame(
-    dat_eth_l1w[order(dat_eth_l1w[, id_col_]), c(id_col, eth_levels)])
+    dat_eth_l1w[order(dat_eth_l1w[, id_row]), c(id_col, eth_levels)])
 
 
   return(dat_out)
