@@ -56,7 +56,7 @@ Priority order | Ethnic group code (Level 1) | Ethnic group code description
 
 1. Stats NZ. (2020). Ethnicity. https://www.stats.govt.nz/topics/ethnicity
 
-2. Stats NZ. (2018). Ethnicity New Zealand Standard Classification 2005 V2.0.0.  aria.stats.govt.nz/aria/?_ga=2.16275327.893015932.1587342845-1950879462.1568254677#ClassificationView:uri=http://stats.govt.nz/cms/ClassificationVersion/l36xYpbxsRh7IW1p
+2. Stats NZ. (2018). Ethnicity New Zealand Standard Classification 2005 V2.0.0.  [Aria](aria.stats.govt.nz/aria/?_ga=2.16275327.893015932.1587342845-1950879462.1568254677#ClassificationView:uri=http://stats.govt.nz/cms/ClassificationVersion/l36xYpbxsRh7IW1p)
 
 3. Ministry of Health. (2017). HISO 10001:2017 Ethnicity Data Protocols. 
 https://www.health.govt.nz/system/files/documents/publications/hiso-10001-2017-ethnicity-data-protocols-v2.pdf
