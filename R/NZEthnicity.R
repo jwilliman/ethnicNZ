@@ -80,40 +80,51 @@ check_ethnicity <- function(data = NULL, id_col = "id", ethnicity = "ethnicity",
 }
 
 
-#' Title
+#' Code ethnicity as per Statistics NZ guidelines.
 #'
 #' @param data Data collected as per the standard New Zealand census ethnicity
 #'   question (used in 2001, 2006, 2013, and 2018).
-#' @param cols Vector of numeric or character indices indicating positions or
-#'   names of ethnicity variables. Columns should be in the following order
-#'   (names aren't important); New Zealand European, Maori, Samoan, Cook Island
-#'   Maori, Tongan, Niuean, Chinese, Indian, Other, Other specified, (Refused)
-#'   Columns should be logical or coercable as such (coded as 0 = No or 1 =
-#'   Yes). Other specified should be a text field with multiple ethnicities
-#'   separated by a comma.
-#' @param sep A character string used to seperate different ethnicities list in the 'Other' field.
-#' @param id_col Names of one or more variables to include in output dataset.  
-#' @param base_levels Names of input variables, as recorded in the reference dataset.
-#' @param eth_levels Names of output columns.
-
+#' @param cols Vector of numeric indices or column names of length 10,
+#'   indicating positions or names of ethnicity variables. Columns should be in
+#'   the following order (names aren't important); New Zealand European, Maori,
+#'   Samoan, Cook Island Maori, Tongan, Niuean, Chinese, Indian, Other, Other
+#'   specified. First nine columns should be logical or coercable as such (coded
+#'   as 0 = No or 1 = Yes). Last column should be a text field with multiple
+#'   ethnicities separated by a character string.
+#' @param sep A character string used to seperate different ethnicities list in
+#' the 'Other' field. Comma by default.
+#' @param base_levels Names of input variables as recorded in the reference
+#'   dataset although not necessary as recorded in the data. Defaults to New
+#'   Zealand European, Maori, Samoan, Cook Island Maori, Tongan, Niuean,
+#'   Chinese, Indian, Other
+#' @param eth_levels Names of output columns. Defaults to European, Maori,
+#'   Pacific, Asian, MELAA, Other, and Unkown.
+#' @param add_col Either a logical vector indicating whether to append the
+#'   output to data collected, or a character vector containing the names of one
+#'   or more variables to include in the output. Default is to return just the
+#'   calculated ethnicity indicator variables.
 #'
-#' @return A data.frame with ethnicity formatted according to Statistics NZ levels.
+#' @return A data.frame with ethnicity formatted according to Statistics NZ
+#'   levels.
 #' @export
 #'
-tidy_ethnicity <- function(
-  data, cols = 1:10, sep = ",", id_col = NULL,
-  base_levels = c(
-    "New Zealand European", "M\U101ori", "Samoan", "Cook Island Maori",
-    "Tongan", "Niuean", "Chinese", "Indian", "Other"),
-  eth_levels = c("European", "M\u0101ori", "Pacific", "Asian", "MELAA", "Other", "Residual")) {
+tidy_ethnicity <- function(data, cols = 1:10, sep = ",", base_levels = NULL, eth_levels = NULL, add_cols = NULL) {
 
   if(is.numeric(cols))
     cols <- names(data)[cols]
 
+  if(is.null(base_levels))
+    base_levels <- c(
+      "New Zealand European", "M\U101ori", "Samoan", "Cook Island Maori",
+      "Tongan", "Niuean", "Chinese", "Indian", "Other")
+  
+  if(is.null(eth_levels))
+    eth_levels <- c("European", "M\u0101ori", "Pacific", "Asian", "MELAA", "Other", "Unknown")
+  
   # Check   
   assertthat::assert_that(length(cols) == 10)
   assertthat::assert_that(
-    length(intersect(id_col, names(data)[1:10])) == 0
+    length(intersect(add_cols, names(data)[1:10])) == 0
     , msg = "id_col and cols overlap")
   
   
@@ -201,8 +212,17 @@ tidy_ethnicity <- function(
   
   # Tidy ordering of columns and rows
   dat_out <- data.frame(
-    dat_eth_l1w[order(dat_eth_l1w[, id_row]), c(id_col, eth_levels)])
+    dat_eth_l1w[order(dat_eth_l1w[, id_row]), c(eth_levels)])
 
+  if(!(is.null(add_cols) | add_cols == FALSE)) {
+    if(add_cols == TRUE)
+      dat_out <- cbind(data, dat_out)
+    else
+      dat_out <- cbind(data[, add_cols], dat_out)
+  }
+
+  
+  
 
   return(dat_out)
 
