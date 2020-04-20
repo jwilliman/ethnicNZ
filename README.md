@@ -29,7 +29,7 @@ When reporting ethnicity as total response, the StatsNZ Level 1 codes are typica
 Code | Descriptor
 ---- | ----------
 1 | European
-2 | M&#101ori
+2 | Māori
 3 | Pacific Peoples
 4 | Asian
 5 | Middle Eastern/Latin American/African
@@ -42,7 +42,7 @@ In prioritised output, each respondent is allocated to a single ethnicgroup usin
 
 Priority order | Ethnic group code (Level 1) | Ethnic group code description
 -------------- | --------------------------- | -----------------------------
-1 | 2 | M&#101ori
+1 | 2 | Māori
 2 | 3 | Pacific Peoples
 3 | 4 | Asian
 4 | 5 | Middle Eastern/Latin American/African
