@@ -85,8 +85,6 @@ ethnic05 <- list(
 )
 
 
-# save(ethnic05, file = "R/sysdata.Rda")
-
 usethis::use_data(ethnic05, internal = TRUE, overwrite = TRUE)
 
 
