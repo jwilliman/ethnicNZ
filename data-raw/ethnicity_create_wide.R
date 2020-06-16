@@ -1,3 +1,6 @@
+## Create r dataset containing Statistics NZ ethnicity codes and descriptions
+
+
 library(dplyr)
 
 dat_t0 <- readxl::read_excel(
@@ -86,5 +89,4 @@ ethnic05 <- list(
 
 
 usethis::use_data(ethnic05, internal = TRUE, overwrite = TRUE)
-
 
