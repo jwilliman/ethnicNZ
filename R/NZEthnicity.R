@@ -57,15 +57,15 @@ check_ethnicity <- function(data = NULL, id_col = "id", ethnicity = "ethnicity",
     dat_long$eth_low  <- tolower(dat_long$ethnicity)
 
     ### Merge with classification file  ----
-    ethnic05$v2$eth_low <- tolower(ethnic05$v2$l4_label)
+    ethnic05_v2$eth_low <- tolower(ethnic05_v2$l4_label)
 
-    dat_nfd <- ethnic05$v2[grepl("(nfd)$", ethnic05$v2$l4_label),]
+    dat_nfd <- ethnic05_v2[grepl("(nfd)$", ethnic05_v2$l4_label),]
     dat_nfd$eth_low <- trimws(gsub("(nfd)$", "", dat_nfd$eth_low))
 
     # Merge character ethnicity with StatsNZ coding scheme
     dat_out <- merge(
       dat_long,
-      rbind(ethnic05$v2, dat_nfd), by = "eth_low",
+      rbind(ethnic05_v2, dat_nfd), by = "eth_low",
       all.x = TRUE, all.y = FALSE)[,-1]
 
     if(is.numeric(data$id))
@@ -169,7 +169,7 @@ tidy_ethnicity <- function(data, cols = 1:10, sep = ",", base_levels = NULL, eth
 
 
   # Combine with reference datasets
-  dat_eth_core <- merge(dat_eth_core, ethnic05$v2, by = "l4_label")[, c(id_row, names(ethnic05$v2))]
+  dat_eth_core <- merge(dat_eth_core, ethnic05_v2, by = "l4_label")[, c(id_row, names(ethnic05_v2))]
 
 
   ## Code Other ethnicities and merge with core ethnicities --------------------
