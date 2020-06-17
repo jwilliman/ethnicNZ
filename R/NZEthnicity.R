@@ -98,7 +98,12 @@ check_ethnicity <- function(data = NULL, id_col = "id", ethnicity = "ethnicity",
 #'   Zealand European, Maori, Samoan, Cook Island Maori, Tongan, Niuean,
 #'   Chinese, Indian, Other
 #' @param eth_levels Names of output columns. Defaults to European, Maori,
-#'   Pacific, Asian, MELAA, Other, and Unkown.
+#' Pacific, Asian, MELAA, Other, and Unknown.
+#' @param eth_prior A character string indicating the name to give a column
+#'   containing prioritised ethnicity. Default is not to produce column.
+#' @param prior_order Numeric vector giving prioritisation order of columns
+#'   listed in eth_levels. Defaults to c(2:6,1,7), ie. Maori, Pacific, Asian,
+#'   MELAA, Other, European, and Unknown.
 #' @param add_col Either a logical vector indicating whether to append the
 #'   output to data collected, or a character vector containing the names of one
 #'   or more variables to include in the output. Default is to return just the
@@ -108,7 +113,8 @@ check_ethnicity <- function(data = NULL, id_col = "id", ethnicity = "ethnicity",
 #'   levels.
 #' @export
 #'
-tidy_ethnicity <- function(data, cols = 1:10, sep = ",", base_levels = NULL, eth_levels = NULL, add_cols = NULL) {
+tidy_ethnicity <- function(
+  data, cols = 1:10, sep = ",", base_levels = NULL, eth_levels = NULL, eth_prior = NULL, prior_order = c(2:6,1,7), add_cols = FALSE) {
 
   if(is.numeric(cols))
     cols <- names(data)[cols]
@@ -121,11 +127,12 @@ tidy_ethnicity <- function(data, cols = 1:10, sep = ",", base_levels = NULL, eth
   if(is.null(eth_levels))
     eth_levels <- c("European", "M\u0101ori", "Pacific", "Asian", "MELAA", "Other", "Unknown")
   
-  # Check   
+  # Check inputs
   assertthat::assert_that(length(cols) == 10)
+  assertthat::assert_that(is.character(add_cols) | is.logical(add_cols))
   assertthat::assert_that(
-    length(intersect(add_cols, names(data)[1:10])) == 0
-    , msg = "id_col and cols overlap")
+    length(intersect(add_cols, cols)) == 0
+    , msg = "cols and add_cols overlap")
   
   
   ## Subset data to essential columns only
@@ -154,12 +161,14 @@ tidy_ethnicity <- function(data, cols = 1:10, sep = ",", base_levels = NULL, eth
   ## Code Standard ethnicities ----
 
   # Reshape data from wide to long, (excluding 'other' ethnicities for now)
+  base_levels_ed <- c(base_levels[base_levels != "Other"], "Not Stated")
+  
   dat_eth_core <- reshape(
-    data = dat[,c(id_row, base_levels[1:8], "Not Stated")],
-    varying = c(base_levels[1:8], "Not Stated"), # Dataset columns containing ethnicites.
+    data = dat[,c(id_row, base_levels_ed)],
+    varying = base_levels_ed, # Dataset columns containing ethnicites.
     v.names = "value",
     timevar = "l4_label",
-    times = c(base_levels[1:8], "Not Stated"),
+    times = base_levels_ed,
     idvar = id_row,
     direction = "long")
 
@@ -214,15 +223,17 @@ tidy_ethnicity <- function(data, cols = 1:10, sep = ",", base_levels = NULL, eth
   dat_out <- data.frame(
     dat_eth_l1w[order(dat_eth_l1w[, id_row]), c(eth_levels)])
 
-  if(!(is.null(add_cols) | add_cols == FALSE)) {
-    if(add_cols == TRUE)
-      dat_out <- cbind(data, dat_out)
-    else
-      dat_out <- cbind(data[, add_cols], dat_out)
-  }
+  # Add prioritised ethnicity
+  if(!is.null(eth_prior))
+  dat_out[, eth_prior] <- eth_levels[prior_order][
+    apply(dat_out[, prior_order], 1, FUN = function(x) min(which(x == TRUE)))]
 
   
-  
+  # Add extra columns if specified
+  if(is.character(add_cols))
+    dat_out <- cbind(data[, unique(add_cols), drop = FALSE], dat_out)
+  else if(add_cols == TRUE)
+    dat_out <- cbind(data, dat_out)
 
   return(dat_out)
 
