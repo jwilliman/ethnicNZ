@@ -176,7 +176,9 @@ tidy_ethnicity <- function(
   # Only keep rows indicating presence of ethnicity
   dat_eth_core <- dat_eth_core[dat_eth_core$value,]
 
-
+  # Recode 'Chinese' as 'Chinese nfd'
+  dat_eth_core$l4_label[dat_eth_core$l4_label == "Chinese"] <- "Chinese nfd"
+  
   # Combine with reference datasets
   dat_eth_core <- merge(dat_eth_core, ethnic05$v2, by = "l4_label")[, c(id_row, names(ethnic05$v2))]
 
