@@ -121,7 +121,7 @@ tidy_ethnicity <- function(
 
   if(is.null(base_levels))
     base_levels <- c(
-      "New Zealand European", "M\U101ori", "Samoan", "Cook Island Maori",
+      "New Zealand European", "M\U101ori", "Samoan", "Cook Islands Maori",
       "Tongan", "Niuean", "Chinese", "Indian", "Other")
   
   if(is.null(eth_levels))
@@ -176,11 +176,12 @@ tidy_ethnicity <- function(
   # Only keep rows indicating presence of ethnicity
   dat_eth_core <- dat_eth_core[dat_eth_core$value,]
 
-  # Recode 'Chinese' as 'Chinese nfd'
+  # Recode 'Chinese' and 'Indian' as 'Chinese nfd', 'Indian nfd'
   dat_eth_core$l4_label[dat_eth_core$l4_label == "Chinese"] <- "Chinese nfd"
+  dat_eth_core$l4_label[dat_eth_core$l4_label == "Indian"] <- "Indian nfd"
   
   # Combine with reference datasets
-  dat_eth_core <- merge(dat_eth_core, ethnic05$v2, by = "l4_label")[, c(id_row, names(ethnic05$v2))]
+  dat_eth_core2 <- merge(dat_eth_core, ethnic05$v2, by = "l4_label")[, c(id_row, names(ethnic05$v2))]
 
 
   ## Code Other ethnicities and merge with core ethnicities --------------------
@@ -188,8 +189,12 @@ tidy_ethnicity <- function(
   dat$OtherSpec[dat$Other & (is.na(dat$OtherSpec) | dat$Other %in% "")] <- "Other Ethnicity nec"
 
   dat_eth_other <- check_ethnicity(dat, id_col = id_row, ethnicity = "OtherSpec", sep = sep)
-
-  dat_eth <- suppressWarnings(dplyr::bind_rows(dat_eth_core, dat_eth_other))
+  
+  ## Code unidentifiable codes as such.
+  dat_eth_other[is.na(dat_eth_other$l1_code),3:10] <- ethnic05$v2[
+    ethnic05$v2$l4_label == "Response Unidentifiable",]
+  
+  dat_eth <- suppressWarnings(dplyr::bind_rows(dat_eth_core2, dat_eth_other))
   dat_eth <- dat_eth[order(dat_eth[, id_row]),]
 
   ### Create dataset in wide format --------------------------------------------
