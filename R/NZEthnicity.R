@@ -5,10 +5,13 @@
 #' Statistics New Zealand Ethnicity Standard Classification 2005 version 2.
 #'
 #' @param data Data frame containing subject identifier and free text ethnicity field to be checked.
-#' @param id Character giving name of the subject identifier column.
+#' @param id_col Character giving name of the subject identifier column.
 #' @param ethnicity Character giving name of the free text ethnicity column.
+#' @param sep A character string used to separate different ethnicities listed in
+#' the free text field. Comma by default.
 #'
 #' @return A dataframe with identifier, input ethnicity, and mapped ethnicity classifications.
+#' @importFrom stats setNames
 #' @export
 #'
 check_ethnicity <- function(data = NULL, id_col = "id", ethnicity = "ethnicity", sep = ",") {
@@ -22,7 +25,7 @@ check_ethnicity <- function(data = NULL, id_col = "id", ethnicity = "ethnicity",
       id_col %in% names(data) & ethnicity %in% names(data),
       msg = paste0(
         "Columns '", id_col , "' or '", ethnicity, "' not found in dataset."))
-    data <- setNames(
+    data <- stats::setNames(
       data[, c(id_col, ethnicity)],
       c("id", "ethnicity"))
   }
@@ -41,7 +44,7 @@ check_ethnicity <- function(data = NULL, id_col = "id", ethnicity = "ethnicity",
     list_eth <- strsplit(x = data$ethnicity, split = sep)
     names(list_eth) <- data$id
 
-    dat_long <- setNames(
+    dat_long <- stats::setNames(
       dplyr::bind_rows(
         lapply(list_eth, as.data.frame, stringsAsFactors = FALSE),
         .id = "id"),
@@ -91,7 +94,7 @@ check_ethnicity <- function(data = NULL, id_col = "id", ethnicity = "ethnicity",
 #'   specified. First nine columns should be logical or coercable as such (coded
 #'   as 0 = No or 1 = Yes). Last column should be a text field with multiple
 #'   ethnicities separated by a character string.
-#' @param sep A character string used to seperate different ethnicities list in
+#' @param sep A character string used to separate different ethnicities listed in
 #' the 'Other' field. Comma by default.
 #' @param base_levels Names of input variables as recorded in the reference
 #'   dataset although not necessary as recorded in the data. Defaults to New
@@ -104,13 +107,14 @@ check_ethnicity <- function(data = NULL, id_col = "id", ethnicity = "ethnicity",
 #' @param prior_order Numeric vector giving prioritisation order of columns
 #'   listed in eth_levels. Defaults to c(2:6,1,7), ie. Maori, Pacific, Asian,
 #'   MELAA, Other, European, and Unknown.
-#' @param add_col Either a logical vector indicating whether to append the
+#' @param add_cols Either a logical vector indicating whether to append the
 #'   output to data collected, or a character vector containing the names of one
 #'   or more variables to include in the output. Default is to return just the
 #'   calculated ethnicity indicator variables.
 #'
 #' @return A data.frame with ethnicity formatted according to Statistics NZ
 #'   levels.
+#' @importFrom stats setNames reshape
 #' @export
 #'
 tidy_ethnicity <- function(
@@ -151,9 +155,11 @@ tidy_ethnicity <- function(
 
   dat[,"OtherSpec"] <- as.character(dat[,"OtherSpec"])
 
-
-  ## Identify rows with no ethnicity recorded
+  ## Correct 'other ethnicity' where other specified ethnicty is not empty
+  dat$OtherSpec[dat$OtherSpec %in% ""] <- NA_character_
   dat[!is.na(dat$OtherSpec), rev(base_levels)[1]] <- TRUE
+  
+  ## Identify rows with no ethnicity recorded
   dat$`Not Stated` <- rowSums(dat[, base_levels]) == 0
 
 
@@ -163,7 +169,7 @@ tidy_ethnicity <- function(
   # Reshape data from wide to long, (excluding 'other' ethnicities for now)
   base_levels_ed <- c(base_levels[base_levels != "Other"], "Not Stated")
   
-  dat_eth_core <- reshape(
+  dat_eth_core <- stats::reshape(
     data = dat[,c(id_row, base_levels_ed)],
     varying = base_levels_ed, # Dataset columns containing ethnicites.
     v.names = "value",
@@ -210,7 +216,7 @@ tidy_ethnicity <- function(
 
   levels(dat_eth_l1$l1_label) <- eth_levels
 
-  dat_eth_l1w <- reshape(
+  dat_eth_l1w <- stats::reshape(
     dat_eth_l1,
     drop = "l1_code",
     timevar = "l1_label",

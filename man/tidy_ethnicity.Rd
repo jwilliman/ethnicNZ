@@ -10,7 +10,9 @@ tidy_ethnicity(
   sep = ",",
   base_levels = NULL,
   eth_levels = NULL,
-  add_cols = NULL
+  eth_prior = NULL,
+  prior_order = c(2:6, 1, 7),
+  add_cols = FALSE
 )
 }
 \arguments{
@@ -25,7 +27,7 @@ specified. First nine columns should be logical or coercable as such (coded
 as 0 = No or 1 = Yes). Last column should be a text field with multiple
 ethnicities separated by a character string.}
 
-\item{sep}{A character string used to seperate different ethnicities list in
+\item{sep}{A character string used to separate different ethnicities listed in
 the 'Other' field. Comma by default.}
 
 \item{base_levels}{Names of input variables as recorded in the reference
@@ -34,9 +36,16 @@ Zealand European, Maori, Samoan, Cook Island Maori, Tongan, Niuean,
 Chinese, Indian, Other}
 
 \item{eth_levels}{Names of output columns. Defaults to European, Maori,
-Pacific, Asian, MELAA, Other, and Unkown.}
+Pacific, Asian, MELAA, Other, and Unknown.}
 
-\item{add_col}{Either a logical vector indicating whether to append the
+\item{eth_prior}{A character string indicating the name to give a column
+containing prioritised ethnicity. Default is not to produce column.}
+
+\item{prior_order}{Numeric vector giving prioritisation order of columns
+listed in eth_levels. Defaults to c(2:6,1,7), ie. Maori, Pacific, Asian,
+MELAA, Other, European, and Unknown.}
+
+\item{add_cols}{Either a logical vector indicating whether to append the
 output to data collected, or a character vector containing the names of one
 or more variables to include in the output. Default is to return just the
 calculated ethnicity indicator variables.}

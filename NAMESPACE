@@ -3,3 +3,5 @@
 export(check_ethnicity)
 export(find_data)
 export(tidy_ethnicity)
+importFrom(stats,reshape)
+importFrom(stats,setNames)

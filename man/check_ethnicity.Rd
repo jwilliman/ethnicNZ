@@ -9,9 +9,12 @@ check_ethnicity(data = NULL, id_col = "id", ethnicity = "ethnicity", sep = ",")
 \arguments{
 \item{data}{Data frame containing subject identifier and free text ethnicity field to be checked.}
 
+\item{id_col}{Character giving name of the subject identifier column.}
+
 \item{ethnicity}{Character giving name of the free text ethnicity column.}
 
-\item{id}{Character giving name of the subject identifier column.}
+\item{sep}{A character string used to separate different ethnicities listed in
+the free text field. Comma by default.}
 }
 \value{
 A dataframe with identifier, input ethnicity, and mapped ethnicity classifications.
