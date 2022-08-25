@@ -15,9 +15,9 @@
 #' @export
 #'
 check_ethnicity <- function(data = NULL, id_col = "id", ethnicity = "ethnicity", sep = ",") {
-
+  
   assertthat::assert_that(!is.null(id_col) & !is.null(ethnicity))
-
+  
   if(is.null(data)) {
     data <- data.frame(idcol = id_col, ethnicity = ethnicity)
   } else {
@@ -29,57 +29,57 @@ check_ethnicity <- function(data = NULL, id_col = "id", ethnicity = "ethnicity",
       data[, c(id_col, ethnicity)],
       c("id", "ethnicity"))
   }
-
-
+  
+  
   # Drop records without other ethnicity listed
   data <- data[!is.na(data$ethnicity),]
-
-
+  
+  
   if(nrow(data) > 0) {
-
+    
     if(is.factor(data$ethnicity))
       data$ethnicity <- as.character(data$ethnicity)
-
+    
     # Create individual records for multiple other ethnicities
     list_eth <- strsplit(x = data$ethnicity, split = sep)
     names(list_eth) <- data$id
-
+    
     dat_long <- stats::setNames(
       dplyr::bind_rows(
         lapply(list_eth, as.data.frame, stringsAsFactors = FALSE),
         .id = "id"),
       c("id", "ethnicity"))
-
+    
   } else {
-
+    
     dat_long <- data
-
+    
   }
-    # Trim white space and lower case each word
-    dat_long$ethnicity <- trimws(dat_long$ethnicity)
-    dat_long$eth_low  <- tolower(dat_long$ethnicity)
-
-    ### Merge with classification file  ----
-    ethnic05$v2$eth_low <- tolower(ethnic05$v2$l4_label)
-
-    dat_nfd <- ethnic05$v2[grepl("(nfd)$", ethnic05$v2$l4_label),]
-    dat_nfd$eth_low <- trimws(gsub("(nfd)$", "", dat_nfd$eth_low))
-
-    # Merge character ethnicity with StatsNZ coding scheme
-    dat_out <- merge(
-      dat_long,
-      rbind(ethnic05$v2, dat_nfd), by = "eth_low",
-      all.x = TRUE, all.y = FALSE)[,-1]
-
-    if(is.numeric(data$id))
-      class(dat_out$id) <- class(data$id)
-
-    if(is.character(id_col) & is.character(ethnicity))
-      names(dat_out)[1:2] <- c(id_col, ethnicity)
-
-
+  # Trim white space and lower case each word
+  dat_long$ethnicity <- trimws(dat_long$ethnicity)
+  dat_long$eth_low  <- tolower(dat_long$ethnicity)
+  
+  ### Merge with classification file  ----
+  ethnic05$v2$eth_low <- tolower(ethnic05$v2$l4_label)
+  
+  dat_nfd <- ethnic05$v2[grepl("(nfd)$", ethnic05$v2$l4_label),]
+  dat_nfd$eth_low <- trimws(gsub("(nfd)$", "", dat_nfd$eth_low))
+  
+  # Merge character ethnicity with StatsNZ coding scheme
+  dat_out <- merge(
+    dat_long,
+    rbind(ethnic05$v2, dat_nfd), by = "eth_low",
+    all.x = TRUE, all.y = FALSE)[,-1]
+  
+  if(is.numeric(data$id))
+    class(dat_out$id) <- class(data$id)
+  
+  if(is.character(id_col) & is.character(ethnicity))
+    names(dat_out)[1:2] <- c(id_col, ethnicity)
+  
+  
   return(dat_out)
-
+  
 }
 
 
@@ -119,10 +119,10 @@ check_ethnicity <- function(data = NULL, id_col = "id", ethnicity = "ethnicity",
 #'
 tidy_ethnicity <- function(
   data, cols = 1:10, sep = ",", base_levels = NULL, eth_levels = NULL, eth_prior = NULL, prior_order = c(2:6,1,7), add_cols = FALSE) {
-
+  
   if(is.numeric(cols))
     cols <- names(data)[cols]
-
+  
   if(is.null(base_levels))
     base_levels <- c(
       "New Zealand European", "M\U101ori", "Samoan", "Cook Islands Maori",
@@ -142,30 +142,30 @@ tidy_ethnicity <- function(
   ## Subset data to essential columns only
   dat <- data.frame(cbind(id = 1:nrow(data), data[, cols]))
   id_row <- "id"
-
+  
   cols <- match(cols, names(dat))
-
+  
   # Initial cleaning of the dataset
   # data[,1] <- as.character(data[,1])
   names(dat)[cols] <- c(base_levels, "OtherSpec")
-
-
+  
+  
   ## Correct column formats
   dat[, base_levels] <- lapply(dat[base_levels], as.logical)
-
+  
   dat[,"OtherSpec"] <- as.character(dat[,"OtherSpec"])
-
+  
   ## Correct 'other ethnicity' where other specified ethnicty is not empty
   dat$OtherSpec[dat$OtherSpec %in% ""] <- NA_character_
   dat[!is.na(dat$OtherSpec), rev(base_levels)[1]] <- TRUE
   
   ## Identify rows with no ethnicity recorded
   dat$`Not Stated` <- rowSums(dat[, base_levels]) == 0
-
-
-
+  
+  
+  
   ## Code Standard ethnicities ----
-
+  
   # Reshape data from wide to long, (excluding 'other' ethnicities for now)
   base_levels_ed <- c(base_levels[base_levels != "Other"], "Not Stated")
   
@@ -177,23 +177,23 @@ tidy_ethnicity <- function(
     times = base_levels_ed,
     idvar = id_row,
     direction = "long")
-
-
+  
+  
   # Only keep rows indicating presence of ethnicity
   dat_eth_core <- dat_eth_core[dat_eth_core$value,]
-
+  
   # Recode 'Chinese' and 'Indian' as 'Chinese nfd', 'Indian nfd'
   dat_eth_core$l4_label[dat_eth_core$l4_label == "Chinese"] <- "Chinese nfd"
   dat_eth_core$l4_label[dat_eth_core$l4_label == "Indian"] <- "Indian nfd"
   
   # Combine with reference datasets
   dat_eth_core2 <- merge(dat_eth_core, ethnic05$v2, by = "l4_label")[, c(id_row, names(ethnic05$v2))]
-
-
+  
+  
   ## Code Other ethnicities and merge with core ethnicities --------------------
   # If other is yes but not specified - code as such
   dat$OtherSpec[dat$Other & (is.na(dat$OtherSpec) | dat$Other %in% "")] <- "Other Ethnicity nec"
-
+  
   dat_eth_other <- check_ethnicity(dat, id_col = id_row, ethnicity = "OtherSpec", sep = sep)
   
   ## Code unidentifiable codes as such.
@@ -202,20 +202,20 @@ tidy_ethnicity <- function(
   
   dat_eth <- suppressWarnings(dplyr::bind_rows(dat_eth_core2, dat_eth_other))
   dat_eth <- dat_eth[order(dat_eth[, id_row]),]
-
+  
   ### Create dataset in wide format --------------------------------------------
   # dat_eth_l1w <- dat_eth %>%
   #   distinct(scn_id, l1_code, l1_label) %>%
   #   mutate(value = TRUE) %>%
   #   tidyr::pivot_wider("scn_id", names_from = "l1_label", values_from = "value",
   #                      values_fill = list(value = FALSE)) %>%
-
+  
   dat_eth_l1 <- unique(dat_eth[, c(id_row, "l1_code", "l1_label")])
   dat_eth_l1 <- dat_eth_l1[order(dat_eth_l1$l1_code, dat_eth_l1[, id_row]),]
   dat_eth_l1$value <- TRUE
-
+  
   levels(dat_eth_l1$l1_label) <- eth_levels
-
+  
   dat_eth_l1w <- stats::reshape(
     dat_eth_l1,
     drop = "l1_code",
@@ -223,7 +223,7 @@ tidy_ethnicity <- function(
     v.names = "value",
     idvar   = id_row,
     direction = "wide")
-
+  
   # Code NA to FALSE
   dat_eth_l1w[is.na(dat_eth_l1w)] <- FALSE
   
@@ -235,20 +235,22 @@ tidy_ethnicity <- function(
   # Tidy ordering of columns and rows
   dat_out <- data.frame(
     dat_eth_l1w[order(dat_eth_l1w[, id_row]), c(eth_levels)])
-
+  
   # Add prioritised ethnicity
   if(!is.null(eth_prior))
-  dat_out[, eth_prior] <- eth_levels[prior_order][
-    apply(dat_out[, prior_order], 1, FUN = function(x) min(which(x == TRUE)))]
-
+    dat_out[, eth_prior] <- factor(eth_levels[prior_order][
+      apply(dat_out[, prior_order], 1, FUN = function(x) 
+        min(which(x == TRUE)))],
+      levels = eth_levels[prior_order])
+  
   
   # Add extra columns if specified
   if(is.character(add_cols))
     dat_out <- cbind(data[, unique(add_cols), drop = FALSE], dat_out)
   else if(add_cols == TRUE)
     dat_out <- cbind(data, dat_out)
-
+  
   return(dat_out)
-
+  
 }
 
