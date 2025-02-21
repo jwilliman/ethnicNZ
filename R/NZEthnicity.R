@@ -337,7 +337,7 @@ tidy_ethnicity_codes <- function(
         substr(x, 1, level_out) |> as.integer()) |> 
       dplyr::filter(!is.na(code)) |> 
       dplyr::mutate(value = TRUE) |> 
-      dplyr::select("var")
+      dplyr::select(-c(var))
     
     dat_eth_all <- dat_eth_logic |> 
       dplyr::bind_rows(dat_eth_other) 
