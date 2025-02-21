@@ -346,7 +346,7 @@ tidy_ethnicity_codes <- function(
     dplyr::arrange(label) |> 
     tidyr::pivot_wider(names_from = "label", values_from = "value", values_fill = FALSE) |> 
     dplyr::arrange(.id) |> 
-    dplyr::select(".id")
+    dplyr::select(-c(.id))
   
   
   # Add prioritised ethnicity
