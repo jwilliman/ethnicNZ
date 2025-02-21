@@ -3,6 +3,7 @@
 export(check_ethnicity)
 export(find_data)
 export(tidy_ethnicity)
+export(tidy_ethnicity_codes)
 import(dplyr)
 importFrom(rlang,enquo)
 importFrom(rlang,quo)

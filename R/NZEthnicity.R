@@ -287,6 +287,7 @@ tidy_ethnicity <- function(
 #' @importFrom tidyr pivot_wider pivot_longer
 #' @importFrom rlang quo enquo quo_is_missing
 #'
+#' @export
 tidy_ethnicity_codes <- function(
     data, vars_prefix, vars_binary, vars_other, level_out = 1, col_names = paste0(
       "eth_", c("euro", "maori", "pacific", "asian", "melaa", "other", "unknown"
@@ -295,7 +296,7 @@ tidy_ethnicity_codes <- function(
   
   assertthat::not_empty(vars_prefix)
   
-  dat_eth_stand <- ethnicNZ:::ethnic05$v2 |> 
+  dat_eth_stand <- ethnic05$v2 |> 
     dplyr::select(matches(as.character(level_out))) |> 
     dplyr::distinct() |> 
     setNames(c("code", "label"))
@@ -313,9 +314,9 @@ tidy_ethnicity_codes <- function(
   
   dat_eth_logic <- data |> 
     dplyr::mutate(.id = row_number()) |> 
-    dplyr::select(.id, {{vars_binary}} ) |> 
+    dplyr::select(.data$.id, {{vars_binary}} ) |> 
     tidyr::pivot_longer(
-      -.id, names_to = "code", values_to = "value", 
+      -.data$.id, names_to = "code", values_to = "value", 
       names_prefix = vars_prefix, names_transform = \(x) 
       substr(x, 1,level_out) |> as.integer()) 
   
@@ -323,13 +324,13 @@ tidy_ethnicity_codes <- function(
     
     dat_eth_other <- data |> 
       dplyr::mutate(.id = row_number()) |> 
-      dplyr::select(.id, {{vars_other}}) |> 
+      dplyr::select(.data$.id, {{vars_other}}) |> 
       tidyr::pivot_longer(
-        -.id, names_to = "var", values_to = "code", values_transform = \(x) 
-        substr(x, 1,level_out) |> as.integer()) |> 
-      dplyr::filter(!is.na(code)) |> 
+        -.data$.id, names_to = "var", values_to = "code", values_transform = \(x) 
+        substr(x, 1, level_out) |> as.integer()) |> 
+      dplyr::filter(!is.na(.data$code)) |> 
       dplyr::mutate(value = TRUE) |> 
-      dplyr::select(-var)
+      dplyr::select(.data$var)
     
     dat_eth_all <- dat_eth_logic |> 
       dplyr::bind_rows(dat_eth_other) 
@@ -339,13 +340,13 @@ tidy_ethnicity_codes <- function(
   }
   
   dat_out <- dat_eth_all |> 
-    dplyr::summarise(value = any(value), .by = c(.id, code)) |> 
-    dplyr::left_join(dat_eth_stand, by = join_by(code)) |>  
-    dplyr::distinct(.id, label, value) |> 
-    dplyr::arrange(label) |> 
-    tidyr::pivot_wider(names_from = label, values_from = value, values_fill = FALSE) |> 
-    dplyr::arrange(.id) |> 
-    dplyr::select(-.id)
+    dplyr::summarise(value = any(.data$value), .by = c(.data$.id, .data$code)) |> 
+    dplyr::left_join(dat_eth_stand, by = join_by(.data$code)) |>  
+    dplyr::distinct(.data$.id, .data$label, .data$value) |> 
+    dplyr::arrange(.data$label) |> 
+    tidyr::pivot_wider(names_from = .data$label, values_from = .data$value, values_fill = FALSE) |> 
+    dplyr::arrange(.data$.id) |> 
+    dplyr::select(.data$.id)
   
   
   # Add prioritised ethnicity
