@@ -314,7 +314,7 @@ tidy_ethnicity_codes <- function(
   
   dat_eth_logic <- data |> 
     dplyr::mutate(.id = row_number()) |> 
-    dplyr::select(.data$.id, {{vars_binary}} ) |> 
+    dplyr::select(".id", {{vars_binary}} ) |> 
     tidyr::pivot_longer(
       -.data$.id, names_to = "code", values_to = "value", 
       names_prefix = vars_prefix, names_transform = \(x) 
@@ -324,13 +324,13 @@ tidy_ethnicity_codes <- function(
     
     dat_eth_other <- data |> 
       dplyr::mutate(.id = row_number()) |> 
-      dplyr::select(.data$.id, {{vars_other}}) |> 
+      dplyr::select(".id", {{vars_other}}) |> 
       tidyr::pivot_longer(
-        -.data$.id, names_to = "var", values_to = "code", values_transform = \(x) 
+        -.id, names_to = "var", values_to = "code", values_transform = \(x) 
         substr(x, 1, level_out) |> as.integer()) |> 
-      dplyr::filter(!is.na(.data$code)) |> 
+      dplyr::filter(!is.na(code)) |> 
       dplyr::mutate(value = TRUE) |> 
-      dplyr::select(.data$var)
+      dplyr::select("var")
     
     dat_eth_all <- dat_eth_logic |> 
       dplyr::bind_rows(dat_eth_other) 
@@ -341,12 +341,12 @@ tidy_ethnicity_codes <- function(
   
   dat_out <- dat_eth_all |> 
     dplyr::summarise(value = any(.data$value), .by = c(.data$.id, .data$code)) |> 
-    dplyr::left_join(dat_eth_stand, by = join_by(.data$code)) |>  
+    dplyr::left_join(dat_eth_stand, by = join_by(code)) |>  
     dplyr::distinct(.data$.id, .data$label, .data$value) |> 
-    dplyr::arrange(.data$label) |> 
-    tidyr::pivot_wider(names_from = .data$label, values_from = .data$value, values_fill = FALSE) |> 
-    dplyr::arrange(.data$.id) |> 
-    dplyr::select(.data$.id)
+    dplyr::arrange(label) |> 
+    tidyr::pivot_wider(names_from = "label", values_from = "value", values_fill = FALSE) |> 
+    dplyr::arrange(.id) |> 
+    dplyr::select(".id")
   
   
   # Add prioritised ethnicity
