@@ -353,8 +353,7 @@ tidy_ethnicity_codes <- function(
     dplyr::distinct(.data$.id, .data$label, .data$value) |> 
     dplyr::arrange(label) |> 
     tidyr::pivot_wider(names_from = "label", values_from = "value", values_fill = FALSE) |> 
-    dplyr::arrange(.id) |> 
-    dplyr::select(-c(.id))
+    dplyr::arrange(.id) 
   
   
   # Add prioritised ethnicity
@@ -373,6 +372,6 @@ tidy_ethnicity_codes <- function(
   else if(add_cols == TRUE)
     dat_out <- left_join(data, dat_out, by = ".id")
   
-  return(dat_out)
+  return(dat_out|> dplyr::select(-c(.id)))
   
 }
