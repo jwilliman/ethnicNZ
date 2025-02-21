@@ -293,7 +293,7 @@ tidy_ethnicity_codes <- function(
       "eth_", c("euro", "maori", "pacific", "asian", "melaa", "other", "unknown"
       )), eth_prior = NULL, eth_levels = NULL, prior_order = c(2:6,1,7), add_cols = TRUE) {
   
-  
+
   assertthat::not_empty(vars_prefix)
   
   dat_eth_stand <- ethnic05$v2 |> 
@@ -312,19 +312,26 @@ tidy_ethnicity_codes <- function(
   if(is.null(eth_levels))
     eth_levels <- c("European", "Maori", "Pacific", "Asian", "MELAA", "Other", "Unknown")
   
+  
+  ## Add unique identifier for merging later.
+  data <- data |> 
+    dplyr::mutate(
+      .id = row_number()
+    )
+  
+  ## Edit logical ethnicity columns
   dat_eth_logic <- data |> 
-    dplyr::mutate(.id = row_number()) |> 
-    dplyr::select(".id", {{vars_binary}} ) |> 
+    dplyr::select(c(.id, {{vars_binary}} )) |> 
     tidyr::pivot_longer(
       -.data$.id, names_to = "code", values_to = "value", 
       names_prefix = vars_prefix, names_transform = \(x) 
       substr(x, 1,level_out) |> as.integer()) 
   
+  ## Edit 'other' ethnicity columns
   if(!rlang::quo_is_missing(enquo(vars_other))) {
     
     dat_eth_other <- data |> 
-      dplyr::mutate(.id = row_number()) |> 
-      dplyr::select(".id", {{vars_other}}) |> 
+      dplyr::select(c(.id, {{vars_other}} )) |> 
       tidyr::pivot_longer(
         -.id, names_to = "var", values_to = "code", values_transform = \(x) 
         substr(x, 1, level_out) |> as.integer()) |> 
@@ -339,6 +346,7 @@ tidy_ethnicity_codes <- function(
     dat_eth_all <- dat_eth_logic
   }
   
+  ## Combine coluns
   dat_out <- dat_eth_all |> 
     dplyr::summarise(value = any(.data$value), .by = c(.data$.id, .data$code)) |> 
     dplyr::left_join(dat_eth_stand, by = "code") |>  
@@ -356,12 +364,14 @@ tidy_ethnicity_codes <- function(
         min(which(x == TRUE)))],
       levels = eth_levels[prior_order])
   
-  
   # Add extra columns if specified
   if(is.character(add_cols))
-    dat_out <- cbind(data[, unique(add_cols), drop = FALSE], dat_out)
+    dat_out <- left_join(
+      data[, unique(add_cols), drop = FALSE], dat_out,
+      by = ".id")
+  
   else if(add_cols == TRUE)
-    dat_out <- cbind(data, dat_out)
+    dat_out <- left_join(data, dat_out, by = ".id")
   
   return(dat_out)
   
