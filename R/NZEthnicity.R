@@ -341,7 +341,7 @@ tidy_ethnicity_codes <- function(
   
   dat_out <- dat_eth_all |> 
     dplyr::summarise(value = any(.data$value), .by = c(.data$.id, .data$code)) |> 
-    dplyr::left_join(dat_eth_stand, by = join_by(code)) |>  
+    dplyr::left_join(dat_eth_stand, by = "code") |>  
     dplyr::distinct(.data$.id, .data$label, .data$value) |> 
     dplyr::arrange(label) |> 
     tidyr::pivot_wider(names_from = "label", values_from = "value", values_fill = FALSE) |> 
