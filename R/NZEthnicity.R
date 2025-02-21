@@ -125,11 +125,11 @@ tidy_ethnicity <- function(
   
   if(is.null(base_levels))
     base_levels <- c(
-      "New Zealand European", "M\U101ori", "Samoan", "Cook Islands Maori",
+      "New Zealand European", "Maori", "Samoan", "Cook Islands Maori",
       "Tongan", "Niuean", "Chinese", "Indian", "Other")
   
   if(is.null(eth_levels))
-    eth_levels <- c("European", "M\u0101ori", "Pacific", "Asian", "MELAA", "Other", "Unknown")
+    eth_levels <- c("European", "Maori", "Pacific", "Asian", "MELAA", "Other", "Unknown")
   
   # Check inputs
   assertthat::assert_that(length(cols) == 10)
@@ -254,3 +254,114 @@ tidy_ethnicity <- function(
   
 }
 
+#' Code ethnicity recorded as Statistics NZ codes
+#'
+#' @param data Data collected as per the standard New Zealand census ethnicity
+#'   question (used in 2001, 2006, 2013, and 2018). 
+#'   Ethnicity columns should be named with a common prefix followed by valid StatsNZ ethnicity codes
+#'   (e.g. eth___11, eth___21, ...).  
+#' @param vars_prefix Common prefix used to denote ethnicity variable names.   
+#' @param vars_binary Tidy-select argument to select ethnicity columns. 
+#' Ethnicity columns should be named with a common prefix followed by valid StatsNZ ethnicity codes
+#'   (e.g. eth___11, eth___21, ...). 
+#'  Columns should be logical or coercable as such (coded as 0 = No or 1 = Yes).
+#' @param vars_other Tidy-select argument to select columns containing 'other' ethnicities recording StatsNZ codes.
+#' @param level_out Integer indicating StatsNZ total response output level (1, 2, 3 or 4).
+#' @param col_names Names to give output columns. 
+#' @param eth_prior A character string indicating the name to give a column
+#'   containing prioritised ethnicity. Default is not to produce column.
+#' @param eth_levels Names of output columns. Defaults to European, Maori,
+#' Pacific, Asian, MELAA, Other, and Unknown.
+#' @param prior_order Numeric vector giving prioritisation order of columns
+#'   listed in eth_levels. Defaults to c(2:6,1,7), ie. Maori, Pacific, Asian,
+#'   MELAA, Other, European, and Unknown.
+#' @param add_cols Either a logical vector indicating whether to append the
+#'   output to data collected, or a character vector containing the names of one
+#'   or more variables to include in the output. Default is to return just the
+#'   calculated ethnicity indicator variables.
+#'
+#' @return A data.frame with ethnicity formatted according to Statistics NZ
+#'   levels.
+#'   
+#' @import dplyr
+#' @importFrom tidyr pivot_wider pivot_longer
+#' @importFrom rlang quo enquo quo_is_missing
+#'
+tidy_ethnicity_codes <- function(
+    data, vars_prefix, vars_binary, vars_other, level_out = 1, col_names = paste0(
+      "eth_", c("euro", "maori", "pacific", "asian", "melaa", "other", "unknown"
+      )), eth_prior = NULL, eth_levels = NULL, prior_order = c(2:6,1,7), add_cols = TRUE) {
+  
+  
+  assertthat::not_empty(vars_prefix)
+  
+  dat_eth_stand <- ethnicNZ:::ethnic05$v2 |> 
+    dplyr::select(matches(as.character(level_out))) |> 
+    dplyr::distinct() |> 
+    setNames(c("code", "label"))
+  
+  assertthat::are_equal(
+    length(levels(dat_eth_stand$label)), length(col_names))  
+  levels(dat_eth_stand$label) <- col_names
+  
+  
+  if(rlang::quo_is_missing(enquo(vars_binary)))
+    vars_binary = rlang::quo(starts_with( {{vars_prefix}} ))
+  
+  if(is.null(eth_levels))
+    eth_levels <- c("European", "Maori", "Pacific", "Asian", "MELAA", "Other", "Unknown")
+  
+  dat_eth_logic <- data |> 
+    dplyr::mutate(.id = row_number()) |> 
+    dplyr::select(.id, {{vars_binary}} ) |> 
+    tidyr::pivot_longer(
+      -.id, names_to = "code", values_to = "value", 
+      names_prefix = vars_prefix, names_transform = \(x) 
+      substr(x, 1,level_out) |> as.integer()) 
+  
+  if(!rlang::quo_is_missing(enquo(vars_other))) {
+    
+    dat_eth_other <- data |> 
+      dplyr::mutate(.id = row_number()) |> 
+      dplyr::select(.id, {{vars_other}}) |> 
+      tidyr::pivot_longer(
+        -.id, names_to = "var", values_to = "code", values_transform = \(x) 
+        substr(x, 1,level_out) |> as.integer()) |> 
+      dplyr::filter(!is.na(code)) |> 
+      dplyr::mutate(value = TRUE) |> 
+      dplyr::select(-var)
+    
+    dat_eth_all <- dat_eth_logic |> 
+      dplyr::bind_rows(dat_eth_other) 
+    
+  } else {
+    dat_eth_all <- dat_eth_logic
+  }
+  
+  dat_out <- dat_eth_all |> 
+    dplyr::summarise(value = any(value), .by = c(.id, code)) |> 
+    dplyr::left_join(dat_eth_stand, by = join_by(code)) |>  
+    dplyr::distinct(.id, label, value) |> 
+    dplyr::arrange(label) |> 
+    tidyr::pivot_wider(names_from = label, values_from = value, values_fill = FALSE) |> 
+    dplyr::arrange(.id) |> 
+    dplyr::select(-.id)
+  
+  
+  # Add prioritised ethnicity
+  if(!is.null(eth_prior))
+    dat_out[, eth_prior] <- factor(eth_levels[prior_order][
+      apply(dat_out[, prior_order], 1, FUN = function(x) 
+        min(which(x == TRUE)))],
+      levels = eth_levels[prior_order])
+  
+  
+  # Add extra columns if specified
+  if(is.character(add_cols))
+    dat_out <- cbind(data[, unique(add_cols), drop = FALSE], dat_out)
+  else if(add_cols == TRUE)
+    dat_out <- cbind(data, dat_out)
+  
+  return(dat_out)
+  
+}
