@@ -366,7 +366,7 @@ tidy_ethnicity_codes <- function(
   # Add extra columns if specified
   if(is.character(add_cols))
     dat_out <- left_join(
-      data[, unique(add_cols), drop = FALSE], dat_out,
+      data[, unique(c(".id", add_cols)), drop = FALSE], dat_out,
       by = ".id")
   
   else if(add_cols == TRUE)
