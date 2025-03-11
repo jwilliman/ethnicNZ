@@ -63,19 +63,20 @@ return_id <- function(data, id_cols = NULL) {
 #' @param cols <tidy-select> Columns containing ethnicity indicator columns
 #' @param eth_codes A vector containing the StatsNZ codes for the ethnicity indicator columns. The length of codes should match the number of columns listed, and be in the same order. Default is as per the standard New Zealand census ethnicity question (used in 2001, 2006, 2013, and 2018). I.e. New Zealand European = 111, Māori = 211, ... .
 #'
+#' @importFrom tibble add_column
 #' @export
 #'
 ethnic_code_indicators <- function(data, cols, id_cols = NULL, eth_codes = census_2013_question_codes) {
   
 
   ## Add unique identifier for merging later.
-  id_cols <- return_id(data, id_cols)
+  id_cols <- return_id(data, {{ id_cols }})
   
   if(id_cols == rlang::sym(".rowid"))
     data <- tibble::add_column(data, .rowid = 1:nrow(data), .before = 1)
   
   dat_eth_logic_wide <- data |> 
-    dplyr::select(c(id_cols, {{ cols }} ))
+    dplyr::select(c({{ id_cols }}, {{ cols }} ))
   
   vct_eth_vars <- names(dat_eth_logic_wide)[-1]
   
@@ -92,7 +93,7 @@ ethnic_code_indicators <- function(data, cols, id_cols = NULL, eth_codes = censu
         "Please check number of ethnicity columns ({len_eth_vars}) and ethnicity codes are the same ({len_eth_codes})."))
     
     dat_eth_logic_long <- dat_eth_logic_wide |>
-      tidyr::pivot_longer(-c(id_cols), names_to = "code", values_to = "value") |>
+      tidyr::pivot_longer(-c({{ id_cols }}), names_to = "code", values_to = "value") |>
       dplyr::mutate(
         code = factor(.data$code, levels = vct_eth_vars, labels = eth_codes) |>
           as.character() |> as.integer(),
@@ -113,6 +114,7 @@ ethnic_code_indicators <- function(data, cols, id_cols = NULL, eth_codes = censu
 #' @param type Indicate whether ethnicity has been recorded as text (e.g. Taiwanese) or StatsNZ numeric code (e.g. 42116) 
 #' @param check Logical to determine whether to output coded dataset (check = FALSE) or only return uncoded ethnicities (check = TRUE). 
 #'
+#' @importFrom tibble add_column
 #' @export
 #'
 ethnic_code_text <- function(data, cols, id_cols = NULL, delim = ",", code_level = 4, type = c("text", "code"), check = NULL) {
@@ -200,6 +202,7 @@ ethnic_code_text <- function(data, cols, id_cols = NULL, delim = ",", code_level
 #' @param check Logical to determine whether to output coded dataset (check = FALSE) or only return uncoded ethnicities (check = TRUE). 
 #' @param level_out Provide the StatsNZ classification level (1, 2, 3, or 4) that ethnicity is to be outputted as. 
 #'
+#' @importFrom tibble add_column
 #' @export
 #'
 #' @returns A dataframe with columns for identifier (or row id), ethnicity code, and 
@@ -212,7 +215,7 @@ ethnic_code_long <- function(
 ) {
   
   ## Add unique identifier for merging later.
-  id_cols <- return_id(data, id_cols)
+  id_cols <- return_id(data, {{ id_cols }})
   
   if(id_cols == rlang::sym(".rowid"))
     data <- tibble::add_column(data, .rowid = 1:nrow(data), .before = 1)
@@ -237,6 +240,8 @@ ethnic_code_long <- function(
 #' @param level_out Provide the StatsNZ classification level (1, 2, 3, or 4) that ethnicity is to be outputted as.
 #' @param col_names Names of output columns. 
 #'
+#'
+#' @importFrom tibble add_column
 #' @export
 #'
 ethnic_code_wide <- function(data, id_cols = NULL, level_out = 1, col_names = ethnicity_level1_codes) {
@@ -248,7 +253,7 @@ ethnic_code_wide <- function(data, id_cols = NULL, level_out = 1, col_names = et
     mutate(var_name = factor(.data$code, levels = col_names, labels = names(col_names)))
   
   ## Add unique identifier for merging later.
-  id_cols <- return_id(data, id_cols)
+  id_cols <- return_id(data, {{ id_cols }})
   
   if(id_cols == rlang::sym(".rowid"))
     data <- tibble::add_column(data, .rowid = 1:nrow(data), .before = 1)
@@ -287,6 +292,9 @@ ethnic_code_wide <- function(data, id_cols = NULL, level_out = 1, col_names = et
 #' @param prior_order Numeric vector giving prioritisation order of columns
 #'   listed in eth_levels. Defaults to c(2:6,1,7), ie. Maori, Pacific, Asian,
 #'   MELAA, Other, European, and Unknown.
+#' 
+#' 
+#' @importFrom tibble add_column
 #' @export
 #'
 ethnic_code_all <- function(
@@ -298,7 +306,7 @@ ethnic_code_all <- function(
     add_cols = FALSE, eth_prior = NULL, prior_order = ethnicity_level1_prior_order) {
   
   ## Add unique identifier for merging later.
-  id_cols <- return_id(data, id_cols)
+  id_cols <- return_id(data, {{ id_cols }})
   
   if(id_cols == rlang::sym(".rowid"))
     data <- tibble::add_column(data, .rowid = 1:nrow(data), .before = 1)
