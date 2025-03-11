@@ -165,21 +165,26 @@ ethnic_code_text <- function(data, cols, id_cols = NULL, delim = ",", code_level
       
     }
     
-    if(check == TRUE) #any(is.na(dat_eth_other_label$code)))
+    if(check == TRUE) { #any(is.na(dat_eth_other_label$code))) 
+      
       return(
         dat_eth_text_label |>
           dplyr::filter(is.na(code))
       )
-    else {
       
-      length_uncoded <- sum(is.na(dat_eth_text_label$code))
+    } else {
       
-      if(check != FALSE)
+      if(is.null(check)) {
+        
+        length_uncoded <- sum(is.na(dat_eth_text_label$code))
+ 
         warning(
           assertthat::validate_that(
             length_uncoded == 0, 
             msg = glue::glue("{length_uncoded} ethnicities were not coded. Use function 'ethnic_code_text' with option 'check = TRUE' to identify which ones, or 'check = FALSE' to suppress this warning.")))
-      
+        
+      }
+       
       return(
         dat_eth_text_label |> 
           dplyr::filter(!is.na(.data$code))
