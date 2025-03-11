@@ -19,6 +19,42 @@ ethnicity_level1_codes <- c(
   "unknown"  = 9
 )
 
+ethnicity_level1_prior_order <- c(2:6, 1, 7)
+
+
+return_id <- function(data, id_cols = NULL) {
+  
+  check_id_any <- assertthat::validate_that(
+    !rlang::quo_is_null(rlang::enquo(id_cols)),
+    msg = "No unique identifier column provided")
+  
+  if(check_id_any == TRUE) {
+    
+    return(rlang::ensym(id_cols))
+    
+  } else {
+    
+    message(check_id_any)
+    
+    check_id_first <- assertthat::validate_that(
+      length(unique(data[[1]])) == nrow(data)
+      , msg = "First column not unique")
+    
+    if(check_id_first == TRUE) {
+      
+      message("Using first column")
+      return(rlang::sym(names(data)[1]))
+      
+    } else {
+      
+      message(check_id_first)
+      message("Creating new identifier called .rowid")
+      
+      return(rlang::sym(".rowid"))
+      
+    }
+  }
+}
 
 
 #' Provides StatsNZ codes for ethnicity recorded in indicator (TRUE/FALSE, 1/0) columns
@@ -29,12 +65,17 @@ ethnicity_level1_codes <- c(
 #'
 #' @export
 #'
-ethnic_code_indicators <- function(data, cols, eth_codes = census_2013_question_codes) {
+ethnic_code_indicators <- function(data, cols, id_cols = NULL, eth_codes = census_2013_question_codes) {
   
+
   ## Add unique identifier for merging later.
+  id_cols <- return_id(data, id_cols)
+  
+  if(id_cols == rlang::sym(".rowid"))
+    data <- tibble::add_column(data, .rowid = 1:nrow(data), .before = 1)
+  
   dat_eth_logic_wide <- data |> 
-    dplyr::mutate(.rowid = row_number()) |> 
-    dplyr::select(c(.rowid, {{ cols }} ))
+    dplyr::select(c(id_cols, {{ cols }} ))
   
   vct_eth_vars <- names(dat_eth_logic_wide)[-1]
   
@@ -51,7 +92,7 @@ ethnic_code_indicators <- function(data, cols, eth_codes = census_2013_question_
         "Please check number of ethnicity columns ({len_eth_vars}) and ethnicity codes are the same ({len_eth_codes})."))
     
     dat_eth_logic_long <- dat_eth_logic_wide |>
-      tidyr::pivot_longer(-c(.rowid), names_to = "code", values_to = "value") |>
+      tidyr::pivot_longer(-c(id_cols), names_to = "code", values_to = "value") |>
       dplyr::mutate(
         code = factor(.data$code, levels = vct_eth_vars, labels = eth_codes) |>
           as.character() |> as.integer(),
@@ -74,12 +115,17 @@ ethnic_code_indicators <- function(data, cols, eth_codes = census_2013_question_
 #'
 #' @export
 #'
-ethnic_code_text <- function(data, cols, delim = ",", code_level = 4, type = c("text", "code"), check = FALSE) {
+ethnic_code_text <- function(data, cols, id_cols = NULL, delim = ",", code_level = 4, type = c("text", "code"), check = NULL) {
   
   ## Add unique identifier for merging later.
-  dat_eth_text_long <- data |> 
-    dplyr::mutate(.rowid = row_number()) |> 
-    dplyr::select(c(.rowid, {{ cols }} ))
+  id_cols <- return_id(data, {{ id_cols }})
+  
+  if(id_cols == rlang::sym(".rowid"))
+    data <- tibble::add_column(data, .rowid = 1:nrow(data), .before = 1)
+  
+  ## Add unique identifier for merging later.
+  dat_id <- data |> 
+    dplyr::select(c({{ id_cols }}, {{ cols }} ))
   
   if(ncol(dat_eth_text_long) == 1) {
     warning("No ethnicity text columns selected")
@@ -91,8 +137,8 @@ ethnic_code_text <- function(data, cols, delim = ",", code_level = 4, type = c("
       dplyr::distinct() |> 
       setNames(c("code", "label"))
     
-    dat_eth_text_long <- dat_eth_text_long |> 
-      tidyr::pivot_longer(c(-.rowid), names_to = "var", values_to = "value") |> 
+    dat_eth_text_long <- dat_id |> 
+      tidyr::pivot_longer(-c({{ id_cols }}), names_to = "var", values_to = "value") |> 
       dplyr::filter(!is.na(.data$value)) |> 
       tidyr::separate_longer_delim(c(value), delim = delim) |> 
       dplyr::mutate(value = trimws(.data$value)) 
@@ -102,16 +148,18 @@ ethnic_code_text <- function(data, cols, delim = ",", code_level = 4, type = c("
     if(type[1] == "text") {
       
       dat_eth_text_label <- dat_eth_text_long |> 
-        select(c(.rowid, label = value)) |> 
-        left_join(dat_eth_stand, by = "label")
+        select(c({{ id_cols }}, label = value)) |> 
+        left_join(dat_eth_stand, by = "label") |> 
+        select(c({{ id_cols }}, code, label))
       
       ## If ethnicity is already recorded as numeric code.
     } else if (type[1] == "code") {
       
       dat_eth_text_label <- dat_eth_text_long |>
-        select(c(.rowid, code = value)) |>
+        select(c({{ id_cols }}, code = value)) |>
         mutate(code = as.integer(.data$code)) |>
-        left_join(dat_eth_stand, by = "code")
+        left_join(dat_eth_stand, by = "code") |> 
+        select(c({{ id_cols }}, code, label))
       
     }
     
@@ -123,14 +171,17 @@ ethnic_code_text <- function(data, cols, delim = ",", code_level = 4, type = c("
     else {
       
       length_uncoded <- sum(is.na(dat_eth_text_label$code))
-      warning(
-        assertthat::validate_that(
-          length_uncoded == 0, 
-          msg = glue::glue("{length_uncoded} ethnicities were not coded. Use function 'ethnic_code_text' with option 'check = TRUE' to identify which ones.")))
+      
+      if(check != FALSE)
+        warning(
+          assertthat::validate_that(
+            length_uncoded == 0, 
+            msg = glue::glue("{length_uncoded} ethnicities were not coded. Use function 'ethnic_code_text' with option 'check = TRUE' to identify which ones, or 'check = FALSE' to suppress this warning.")))
       
       return(
         dat_eth_text_label |> 
-          dplyr::filter(!is.na(.data$code))  
+          dplyr::filter(!is.na(.data$code))
+          
       )
       
     }
@@ -146,23 +197,37 @@ ethnic_code_text <- function(data, cols, delim = ",", code_level = 4, type = c("
 #' @param text_cols <tidy-select> Columns containing ethnicity text or numeric columns
 #' @param text_delim Provided deliminator if multiple ethnicities are recorded in a single column with deliminator separating them.
 #' @param text_code_level Provide the StatsNZ classification level (1, 2, 3, or 4) that ethnicity has been entered as. 
+#' @param check Logical to determine whether to output coded dataset (check = FALSE) or only return uncoded ethnicities (check = TRUE). 
 #' @param level_out Provide the StatsNZ classification level (1, 2, 3, or 4) that ethnicity is to be outputted as. 
 #'
 #' @export
 #'
+#' @returns A dataframe with columns for identifier (or row id), ethnicity code, and 
+#' 
 ethnic_code_long <- function(
     data, indicator_cols, indicator_codes = census_2013_question_codes, 
-    text_cols, text_delim = ",", text_code_level = 4,
+    text_cols, text_delim = ",", text_code_level = 4, check = NULL,
+    id_cols = NULL, 
     level_out = 3
 ) {
   
+  ## Add unique identifier for merging later.
+  id_cols <- return_id(data, id_cols)
+  
+  if(id_cols == rlang::sym(".rowid"))
+    data <- tibble::add_column(data, .rowid = 1:nrow(data), .before = 1)
+  
   list(
-    indicators = ethnic_code_indicators(data, cols = {{ indicator_cols }}, eth_codes = indicator_codes),
-    text       = ethnic_code_text(data, cols = {{ text_cols }}, delim = text_delim, code_level = text_code_level) 
+    
+    indicators = ethnic_code_indicators(
+      data, cols = {{ indicator_cols }}, id_cols = {{ id_cols }}, eth_codes = indicator_codes),
+    text       = ethnic_code_text(      
+      data, cols = {{ text_cols }}, id_cols = {{ id_cols }}, delim = text_delim, code_level = text_code_level, check = check) 
+    
   ) |> 
     bind_rows() |> 
-    select(c(.rowid, code)) |> 
-    arrange(.data$.rowid)
+    select(c({{ id_cols }}, code)) |> 
+    arrange({{ id_cols }})
   
 }
 
@@ -174,7 +239,7 @@ ethnic_code_long <- function(
 #'
 #' @export
 #'
-ethnic_code_wide <- function(data, level_out = 1, col_names = ethnicity_level1_codes) {
+ethnic_code_wide <- function(data, id_cols = NULL, level_out = 1, col_names = ethnicity_level1_codes) {
   
   dat_eth_stand <- ethnic05$v2 |> 
     dplyr::select(matches(as.character(level_out))) |> 
@@ -182,16 +247,22 @@ ethnic_code_wide <- function(data, level_out = 1, col_names = ethnicity_level1_c
     setNames(c("code", "label")) |> 
     mutate(var_name = factor(.data$code, levels = col_names, labels = names(col_names)))
   
+  ## Add unique identifier for merging later.
+  id_cols <- return_id(data, id_cols)
+  
+  if(id_cols == rlang::sym(".rowid"))
+    data <- tibble::add_column(data, .rowid = 1:nrow(data), .before = 1)
+  
   dat_out <- data |> 
-    select(.rowid, code) |> 
+    select({{ id_cols }}, code) |> 
     dplyr::mutate(code = substr(.data$code, 1, level_out) |> as.integer()) |> 
     distinct() |> 
     left_join(dat_eth_stand, by = "code") |> 
     mutate(value = TRUE) |> 
-    select(c(.rowid, var_name, value)) |> 
+    select(c({{ id_cols }}, var_name, value)) |> 
     arrange(.data$var_name) |> 
     pivot_wider(names_from = "var_name", values_from = "value", values_fill = FALSE) |>  
-    arrange(.data$.rowid)
+    arrange({{ id_cols }})
   
   return(dat_out)
   
@@ -211,53 +282,67 @@ ethnic_code_wide <- function(data, level_out = 1, col_names = ethnicity_level1_c
 #'   output to data collected, or a character vector containing the names of one
 #'   or more variables to include in the output. Default is to return just the
 #'   calculated ethnicity indicator variables.
-#'
+#' @param eth_prior A character string indicating the name to give a column
+#'   containing prioritised ethnicity. Default is not to produce column.
+#' @param prior_order Numeric vector giving prioritisation order of columns
+#'   listed in eth_levels. Defaults to c(2:6,1,7), ie. Maori, Pacific, Asian,
+#'   MELAA, Other, European, and Unknown.
 #' @export
 #'
 ethnic_code_all <- function(
     data, 
     indicator_cols, indicator_codes = census_2013_question_codes, 
     text_cols, text_delim = ",", text_code_level = 4,
+    id_cols = NULL, 
     level_out = 1, col_names = ethnicity_level1_codes,
-    add_cols = FALSE) {
+    add_cols = FALSE, eth_prior = NULL, prior_order = ethnicity_level1_prior_order) {
+  
+  ## Add unique identifier for merging later.
+  id_cols <- return_id(data, id_cols)
+  
+  if(id_cols == rlang::sym(".rowid"))
+    data <- tibble::add_column(data, .rowid = 1:nrow(data), .before = 1)
+  
   
   dat_out <- ethnic_code_long(
     data = data, 
-    indicator_cols = {{ indicator_cols}}, 
+    indicator_cols = {{ indicator_cols }}, 
     indicator_codes = indicator_codes,
     text_cols = {{ text_cols }}, 
     text_delim = text_delim,
-    text_code_level = text_code_level
+    text_code_level = text_code_level,
+    id_cols = {{ id_cols }}
   ) |> 
     ethnic_code_wide(
-      level_out = level_out, col_names = col_names
+      id_cols = {{ id_cols }}, level_out = level_out, col_names = col_names
     )
   
   # Add prioritised ethnicity
-  if(!is.null(eth_prior))
+  if(!is.null(eth_prior)) {
+
     dat_out[, eth_prior] <- factor(eth_levels[prior_order][
       apply(dat_out[, prior_order], 1, FUN = function(x) 
         min(which(x == TRUE)))],
-      levels = eth_levels[prior_order])
-  
+      levels = eth_levels[prior_order])    
+    
+  }
+
   
   # Add extra columns if specified
   if(add_cols == FALSE) {
-    dat_out <- dat_out |> select(-.rowid)
+    dat_out <- dat_out
   } else if(add_cols == TRUE) {
     dat_out <- data |> 
-      dplyr::mutate(.rowid = row_number()) |> 
-      dplyr::left_join(dat_out, by = ".rowid")
-    
+      dplyr::left_join(dat_out, by = join_by({{ id_cols }}))
   } else {
     dat_out <- data |> 
-      dplyr::mutate(.rowid = row_number()) |> 
       dplyr::left_join(
         dat_out |> 
-          select(c(.rowid, {{add_cols}} ))
-        , by = ".rowid")
+          select(c({{ id_cols }}, {{ add_cols }} ))
+        , by = join_by({{ id_cols }}))
     
   }
     
   return(dat_out)
 }
+
