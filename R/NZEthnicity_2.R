@@ -1,6 +1,6 @@
 census_2013_question_codes <- c(
   "New Zealand European" = 111,
-  "Māori"                = 211,
+  "Maori"                = 211,
   "Samoan"               = 311,
   "Cook Island Maori"    = 321,
   "Tongan"               = 331,
@@ -27,10 +27,8 @@ ethnicity_level1_codes <- c(
 #' @param cols <tidy-select> Columns containing ethnicity indicator columns
 #' @param eth_codes A vector containing the StatsNZ codes for the ethnicity indicator columns. The length of codes should match the number of columns listed, and be in the same order. Default is as per the standard New Zealand census ethnicity question (used in 2001, 2006, 2013, and 2018). I.e. New Zealand European = 111, Māori = 211, ... .
 #'
-#' @return
 #' @export
 #'
-#' @examples
 ethnic_code_indicators <- function(data, cols, eth_codes = census_2013_question_codes) {
   
   ## Add unique identifier for merging later.
@@ -55,10 +53,10 @@ ethnic_code_indicators <- function(data, cols, eth_codes = census_2013_question_
     dat_eth_logic_long <- dat_eth_logic_wide |>
       tidyr::pivot_longer(-c(.rowid), names_to = "code", values_to = "value") |>
       dplyr::mutate(
-        code = factor(code, levels = vct_eth_vars, labels = eth_codes) |>
+        code = factor(.data$code, levels = vct_eth_vars, labels = eth_codes) |>
           as.character() |> as.integer(),
-        value = as.logical(value)) |>
-      dplyr::filter(value %in% TRUE)
+        value = as.logical(.data$value)) |>
+      dplyr::filter(.data$value %in% TRUE)
     
     return(dat_eth_logic_long)
     
@@ -74,10 +72,8 @@ ethnic_code_indicators <- function(data, cols, eth_codes = census_2013_question_
 #' @param type Indicate whether ethnicity has been recorded as text (e.g. Taiwanese) or StatsNZ numeric code (e.g. 42116) 
 #' @param check Logical to determine whether to output coded dataset (check = FALSE) or only return uncoded ethnicities (check = TRUE). 
 #'
-#' @return
 #' @export
 #'
-#' @examples
 ethnic_code_text <- function(data, cols, delim = ",", code_level = 4, type = c("text", "code"), check = FALSE) {
   
   ## Add unique identifier for merging later.
@@ -90,16 +86,16 @@ ethnic_code_text <- function(data, cols, delim = ",", code_level = 4, type = c("
     return(NULL)
   } else {
     
-    dat_eth_stand <- ethnicNZ:::ethnic05$v2 |> 
+    dat_eth_stand <- ethnic05$v2 |> 
       dplyr::select(matches(as.character(code_level))) |> 
       dplyr::distinct() |> 
       setNames(c("code", "label"))
     
     dat_eth_text_long <- dat_eth_text_long |> 
-      tidyr::pivot_longer(-.rowid, names_to = "var", values_to = "value") |> 
-      dplyr::filter(!is.na(value)) |> 
-      tidyr::separate_longer_delim(value, delim = delim) |> 
-      dplyr::mutate(value = trimws(value)) 
+      tidyr::pivot_longer(c(-.rowid), names_to = "var", values_to = "value") |> 
+      dplyr::filter(!is.na(.data$value)) |> 
+      tidyr::separate_longer_delim(c(value), delim = delim) |> 
+      dplyr::mutate(value = trimws(.data$value)) 
     
     
     ## If ethnicity recorded as text
@@ -114,7 +110,7 @@ ethnic_code_text <- function(data, cols, delim = ",", code_level = 4, type = c("
       
       dat_eth_text_label <- dat_eth_text_long |>
         select(c(.rowid, code = value)) |>
-        mutate(code = as.integer(code)) |>
+        mutate(code = as.integer(.data$code)) |>
         left_join(dat_eth_stand, by = "code")
       
     }
@@ -134,7 +130,7 @@ ethnic_code_text <- function(data, cols, delim = ",", code_level = 4, type = c("
       
       return(
         dat_eth_text_label |> 
-          dplyr::filter(!is.na(code))  
+          dplyr::filter(!is.na(.data$code))  
       )
       
     }
@@ -142,7 +138,7 @@ ethnic_code_text <- function(data, cols, delim = ",", code_level = 4, type = c("
 }
 
 
-#' Title
+#' Code ethnicity as per Statistics NZ guidelines: Long
 #'
 #' @param data A data frame containing ethnicity questions to code.
 #' @param indicator_cols Columns containing ethnicity indicator columns
@@ -152,10 +148,8 @@ ethnic_code_text <- function(data, cols, delim = ",", code_level = 4, type = c("
 #' @param text_code_level Provide the StatsNZ classification level (1, 2, 3, or 4) that ethnicity has been entered as. 
 #' @param level_out Provide the StatsNZ classification level (1, 2, 3, or 4) that ethnicity is to be outputted as. 
 #'
-#' @return
 #' @export
 #'
-#' @examples
 ethnic_code_long <- function(
     data, indicator_cols, indicator_codes = census_2013_question_codes, 
     text_cols, text_delim = ",", text_code_level = 4,
@@ -167,39 +161,37 @@ ethnic_code_long <- function(
     text       = ethnic_code_text(data, cols = {{ text_cols }}, delim = text_delim, code_level = text_code_level) 
   ) |> 
     bind_rows() |> 
-    select(.rowid, code) |> 
-    arrange(.rowid)
+    select(c(.rowid, code)) |> 
+    arrange(.data$.rowid)
   
 }
 
-#' Title
+#' Code ethnicity as per Statistics NZ guidelines: Wide
 #'
 #' @param data data frame containing ethnicity questions to code.
 #' @param level_out Provide the StatsNZ classification level (1, 2, 3, or 4) that ethnicity is to be outputted as.
 #' @param col_names Names of output columns. 
 #'
-#' @return
 #' @export
 #'
-#' @examples
 ethnic_code_wide <- function(data, level_out = 1, col_names = ethnicity_level1_codes) {
   
-  dat_eth_stand <- ethnicNZ:::ethnic05$v2 |> 
+  dat_eth_stand <- ethnic05$v2 |> 
     dplyr::select(matches(as.character(level_out))) |> 
     dplyr::distinct() |> 
     setNames(c("code", "label")) |> 
-    mutate(var_name = factor(code, levels = col_names, labels = names(col_names)))
+    mutate(var_name = factor(.data$code, levels = col_names, labels = names(col_names)))
   
   dat_out <- data |> 
     select(.rowid, code) |> 
-    dplyr::mutate(code = substr(code, 1, level_out) |> as.integer()) |> 
+    dplyr::mutate(code = substr(.data$code, 1, level_out) |> as.integer()) |> 
     distinct() |> 
     left_join(dat_eth_stand, by = "code") |> 
     mutate(value = TRUE) |> 
-    select(.rowid, var_name, value) |> 
-    arrange(var_name) |> 
+    select(c(.rowid, var_name, value)) |> 
+    arrange(.data$var_name) |> 
     pivot_wider(names_from = "var_name", values_from = "value", values_fill = FALSE) |>  
-    arrange(.rowid)
+    arrange(.data$.rowid)
   
   return(dat_out)
   
@@ -214,19 +206,17 @@ ethnic_code_wide <- function(data, level_out = 1, col_names = ethnicity_level1_c
 #' @param text_delim Provided deliminator if multiple ethnicities are recorded in a single column with deliminator separating them.
 #' @param text_code_level Provide the StatsNZ classification level (1, 2, 3, or 4) that ethnicity has been entered as. 
 #' @param level_out Provide the StatsNZ classification level (1, 2, 3, or 4) that ethnicity is to be outputted as.
-#' @param col_names 
+#' @param col_names Names of output columns
 #'
-#' @return
 #' @export
 #'
-#' @examples
 ethnic_code_all <- function(
     data, 
     indicator_cols, indicator_codes = census_2013_question_codes, 
     text_cols, text_delim = ",", text_code_level = 4,
     level_out = 1, col_names = ethnicity_level1_codes) {
   
-  ethnic_codes_combine(
+  ethnic_code_long(
     data = data, 
     indicator_cols = {{ indicator_cols}}, 
     indicator_codes = indicator_codes,
