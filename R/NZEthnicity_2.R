@@ -207,6 +207,10 @@ ethnic_code_wide <- function(data, level_out = 1, col_names = ethnicity_level1_c
 #' @param text_code_level Provide the StatsNZ classification level (1, 2, 3, or 4) that ethnicity has been entered as. 
 #' @param level_out Provide the StatsNZ classification level (1, 2, 3, or 4) that ethnicity is to be outputted as.
 #' @param col_names Names of output columns
+#' @param add_cols Either a logical vector indicating whether to append the
+#'   output to data collected, or a character vector containing the names of one
+#'   or more variables to include in the output. Default is to return just the
+#'   calculated ethnicity indicator variables.
 #'
 #' @export
 #'
@@ -214,9 +218,10 @@ ethnic_code_all <- function(
     data, 
     indicator_cols, indicator_codes = census_2013_question_codes, 
     text_cols, text_delim = ",", text_code_level = 4,
-    level_out = 1, col_names = ethnicity_level1_codes) {
+    level_out = 1, col_names = ethnicity_level1_codes,
+    add_cols = FALSE) {
   
-  ethnic_code_long(
+  dat_out <- ethnic_code_long(
     data = data, 
     indicator_cols = {{ indicator_cols}}, 
     indicator_codes = indicator_codes,
@@ -228,4 +233,31 @@ ethnic_code_all <- function(
       level_out = level_out, col_names = col_names
     )
   
+  # Add prioritised ethnicity
+  if(!is.null(eth_prior))
+    dat_out[, eth_prior] <- factor(eth_levels[prior_order][
+      apply(dat_out[, prior_order], 1, FUN = function(x) 
+        min(which(x == TRUE)))],
+      levels = eth_levels[prior_order])
+  
+  
+  # Add extra columns if specified
+  if(add_cols == FALSE) {
+    dat_out <- dat_out |> select(-.rowid)
+  } else if(add_cols == TRUE) {
+    dat_out <- data |> 
+      dplyr::mutate(.rowid = row_number()) |> 
+      dplyr::left_join(dat_out, by = ".rowid")
+    
+  } else {
+    dat_out <- data |> 
+      dplyr::mutate(.rowid = row_number()) |> 
+      dplyr::left_join(
+        dat_out |> 
+          select(c(.rowid, {{add_cols}} ))
+        , by = ".rowid")
+    
+  }
+    
+  return(dat_out)
 }
