@@ -129,7 +129,7 @@ ethnic_code_text <- function(data, cols, id_cols = NULL, delim = ",", code_level
   dat_id <- data |> 
     dplyr::select(c({{ id_cols }}, {{ cols }} ))
   
-  if(ncol(dat_eth_text_long) == 1) {
+  if(ncol(dat_id) == 1) {
     warning("No ethnicity text columns selected")
     return(NULL)
   } else {
