@@ -165,33 +165,42 @@ ethnic_code_text <- function(data, cols, id_cols = NULL, delim = ",", code_level
       
     }
     
-    if(check == TRUE) { #any(is.na(dat_eth_other_label$code))) 
+    if(!is.null(check)) {
       
-      return(
-        dat_eth_text_label |>
-          dplyr::filter(is.na(code))
-      )
+      if(check == TRUE) { #any(is.na(dat_eth_other_label$code))) 
+        
+        ## Return unmatched ethnicities only
+        return(
+          dat_eth_text_label |>
+            dplyr::filter(is.na(code))
+        )
+        
+      } else if(check == FALSE) {
+        
+        ## Return matched ethnicities only, without a warning.
+        return(
+          dat_eth_text_label |>
+            dplyr::filter(is.na(code))
+        )
+      } 
       
     } else {
       
-      if(is.null(check)) {
-        
-        length_uncoded <- sum(is.na(dat_eth_text_label$code))
- 
-        warning(
-          assertthat::validate_that(
-            length_uncoded == 0, 
-            msg = glue::glue("{length_uncoded} ethnicities were not coded. Use function 'ethnic_code_text' with option 'check = TRUE' to identify which ones, or 'check = FALSE' to suppress this warning.")))
-        
-      }
-       
+      ## Return matched ethnicities only, with a warning.
+      length_uncoded <- sum(is.na(dat_eth_text_label$code))
+      
+      warning(
+        assertthat::validate_that(
+          length_uncoded == 0, 
+          msg = glue::glue("{length_uncoded} ethnicities were not coded. Use function 'ethnic_code_text' with option 'check = TRUE' to identify which ones, or 'check = FALSE' to suppress this warning.")))
+      
       return(
         dat_eth_text_label |> 
           dplyr::filter(!is.na(.data$code))
-          
       )
-      
+        
     }
+
   }
 }
 
