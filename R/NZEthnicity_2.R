@@ -180,7 +180,7 @@ ethnic_code_text <- function(data, cols, id_cols = NULL, delim = ",", code_level
         ## Return matched ethnicities only, without a warning.
         return(
           dat_eth_text_label |>
-            dplyr::filter(is.na(code))
+            dplyr::filter(!is.na(code))
         )
       } 
       
@@ -314,7 +314,7 @@ ethnic_code_wide <- function(data, id_cols = NULL, level_out = 1, col_names = et
 ethnic_code_all <- function(
     data, 
     indicator_cols, indicator_codes = census_2013_question_codes, 
-    text_cols, text_delim = ",", text_code_level = 4,
+    text_cols, text_delim = ",", text_code_level = 4, check = NULL,
     id_cols = NULL, 
     level_out = 1, col_names = ethnicity_level1_codes,
     add_cols = FALSE, eth_prior = NULL, prior_order = ethnicity_level1_prior_order) {
@@ -333,6 +333,7 @@ ethnic_code_all <- function(
     text_cols = {{ text_cols }}, 
     text_delim = text_delim,
     text_code_level = text_code_level,
+    check = check,
     id_cols = {{ id_cols }}
   ) |> 
     ethnic_code_wide(
