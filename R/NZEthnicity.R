@@ -125,7 +125,7 @@ tidy_ethnicity <- function(
   
   if(is.null(base_levels))
     base_levels <- c(
-      "New Zealand European", "Maori", "Samoan", "Cook Islands Maori",
+      "New Zealand European", "Māori", "Samoan", "Cook Islands Maori",
       "Tongan", "Niuean", "Chinese", "Indian", "Other")
   
   if(is.null(eth_levels))
