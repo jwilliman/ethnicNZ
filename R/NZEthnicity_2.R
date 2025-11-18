@@ -111,13 +111,13 @@ ethnic_code_indicators <- function(data, cols, id_cols = NULL, eth_codes = censu
 #' @param cols <tidy-select> Columns containing ethnicity text or numeric columns
 #' @param delim Provided deliminator if multiple ethnicities are recorded in a single column with deliminator separating them. 
 #' @param code_level Provide the StatsNZ classification level (1,2,3 or 4) that ethnicity has been entered as. 
-#' @param type Indicate whether ethnicity has been recorded as text (e.g. Taiwanese) or StatsNZ numeric code (e.g. 42116) 
+#' @param type Indicate whether ethnicity has been recorded as `text` (e.g. Taiwanese) or StatsNZ numeric `code` (e.g. 42116) 
 #' @param check Logical to determine whether to output coded dataset (check = FALSE) or only return uncoded ethnicities (check = TRUE). 
 #'
 #' @importFrom tibble add_column
 #' @export
 #'
-ethnic_code_text <- function(data, cols, id_cols = NULL, delim = ",", code_level = 4, type = c("text", "code"), check = NULL) {
+ethnic_code_text <- function(data, cols, id_cols = NULL, delim = ",", code_level = 4, type = NULL, check = NULL) {
   
   ## Add unique identifier for merging later.
   id_cols <- return_id(data, {{ id_cols }})
@@ -146,8 +146,13 @@ ethnic_code_text <- function(data, cols, id_cols = NULL, delim = ",", code_level
       dplyr::mutate(value = trimws(.data$value)) 
     
     
+    type_code <- all(grepl("[0-9]{5}", unique(na.omit(dat_eth_text_long$value))))
+    
+    if(is.null(type))
+      if(type_code) type = "code" else type = "text"
+        
     ## If ethnicity recorded as text
-    if(type[1] == "text") {
+    if(type == "text") {
       
       dat_eth_text_label <- dat_eth_text_long |> 
         select(c({{ id_cols }}, label = value)) |> 
@@ -155,7 +160,7 @@ ethnic_code_text <- function(data, cols, id_cols = NULL, delim = ",", code_level
         select(c({{ id_cols }}, code, label))
       
       ## If ethnicity is already recorded as numeric code.
-    } else if (type[1] == "code") {
+    } else if (type == "code") {
       
       dat_eth_text_label <- dat_eth_text_long |>
         select(c({{ id_cols }}, code = value)) |>
@@ -223,7 +228,7 @@ ethnic_code_text <- function(data, cols, id_cols = NULL, delim = ",", code_level
 #' 
 ethnic_code_long <- function(
     data, indicator_cols, indicator_codes = census_2013_question_codes, 
-    text_cols, text_delim = ",", text_code_level = 4, check = NULL,
+    text_cols, text_delim = ",", text_code_level = 4, text_code_type = NULL, check = NULL,
     id_cols = NULL, 
     level_out = 3
 ) {
@@ -239,7 +244,7 @@ ethnic_code_long <- function(
     indicators = ethnic_code_indicators(
       data, cols = {{ indicator_cols }}, id_cols = {{ id_cols }}, eth_codes = indicator_codes),
     text       = ethnic_code_text(      
-      data, cols = {{ text_cols }}, id_cols = {{ id_cols }}, delim = text_delim, code_level = text_code_level, check = check) 
+      data, cols = {{ text_cols }}, id_cols = {{ id_cols }}, delim = text_delim, code_level = text_code_level, type = text_code_type, check = check) 
     
   ) |> 
     bind_rows() |> 
