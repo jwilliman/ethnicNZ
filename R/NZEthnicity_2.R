@@ -19,6 +19,10 @@ ethnicity_level1_codes <- c(
   "unknown"  = 9
 )
 
+ethnicity_level1_labels <- c(
+  "Māori", "Pacific", "Asian", "MELAA", "Other", "European", "Unknown"
+)
+
 ethnicity_level1_prior_order <- c(2:6, 1, 7)
 
 
@@ -322,7 +326,8 @@ ethnic_code_all <- function(
     text_cols, text_delim = ",", text_code_level = 4, check = NULL,
     id_cols = NULL, 
     level_out = 1, col_names = ethnicity_level1_codes,
-    add_cols = FALSE, eth_prior = NULL, prior_order = ethnicity_level1_prior_order) {
+    add_cols = FALSE, eth_prior = NULL, prior_order = ethnicity_level1_prior_order,
+    prior_labels = ethnicity_level1_labels) {
   
   ## Add unique identifier for merging later.
   id_cols <- return_id(data, {{ id_cols }})
@@ -348,11 +353,11 @@ ethnic_code_all <- function(
   # Add prioritised ethnicity
   if(!is.null(eth_prior)) {
 
-    dat_out[, eth_prior] <- factor(eth_levels[prior_order][
+    dat_out[, eth_prior] <- factor(names(col_names)[prior_order][
       apply(dat_out[, prior_order], 1, FUN = function(x) 
         min(which(x == TRUE)))],
-      levels = eth_levels[prior_order])    
-    
+      levels = names(col_names)[prior_order],
+      labels = prior_labels)
   }
 
   
