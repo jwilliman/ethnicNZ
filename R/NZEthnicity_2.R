@@ -20,7 +20,13 @@ ethnicity_level1_codes <- c(
 )
 
 ethnicity_level1_labels <- c(
-  "Māori", "Pacific", "Asian", "MELAA", "Other", "European", "Unknown"
+  "european" = "European",
+  "maori"    = "Māori",
+  "pacific"  = "Pacific",
+  "asian"    = "Asian",
+  "melaa"    = "MELAA",
+  "other"    = "Other",
+  "unknown"  = "Unknown"
 )
 
 ethnicity_level1_prior_order <- c(2:6, 1, 7)
@@ -353,11 +359,13 @@ ethnic_code_all <- function(
   # Add prioritised ethnicity
   if(!is.null(eth_prior)) {
 
-    dat_out[, eth_prior] <- factor(names(col_names)[prior_order][
-      apply(dat_out[, prior_order], 1, FUN = function(x) 
-        min(which(x == TRUE)))],
-      levels = names(col_names)[prior_order],
-      labels = prior_labels)
+    prior_names <- intersect(names(col_names)[prior_order], names(dat_out))
+    
+    dat_out[, eth_prior] <- factor(
+      prior_names[max.col(dat_out[, prior_names], ties.method = "first")],
+      levels = prior_names,
+      labels = prior_labels[prior_names]
+    )
   }
 
   
