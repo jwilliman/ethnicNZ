@@ -144,12 +144,12 @@ ethnic_code_text <- function(data, cols, id_cols = NULL, delim = ",", code_level
     return(NULL)
   } else {
     
-    dat_eth_stand <- lapply(
-      code_levels, \(code_level)
+    dat_eth_stand <- lapply(code_levels, function(.x) {
       ethnicNZ:::ethnic05$v2 |> 
-      dplyr::select(matches(as.character(code_level))) |> 
-      dplyr::distinct() |> 
-      setNames(c("code", "label"))) |> 
+        dplyr::select(matches(as.character(.x))) |> 
+        dplyr::distinct() |> 
+        setNames(c("code", "label"))    
+    }) |> 
       dplyr::bind_rows() 
     
     dat_eth_text_long <- dat_id |> 
