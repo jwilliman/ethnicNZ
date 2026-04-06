@@ -127,7 +127,7 @@ ethnic_code_indicators <- function(data, cols, id_cols = NULL, eth_codes = censu
 #' @importFrom tibble add_column
 #' @export
 #'
-ethnic_code_text <- function(data, cols, id_cols = NULL, delim = ",", code_level = 4, type = NULL, check = NULL) {
+ethnic_code_text <- function(data, cols, id_cols = NULL, delim = ",", code_levels = 1:4, type = NULL, check = NULL) {
   
   ## Add unique identifier for merging later.
   id_cols <- return_id(data, {{ id_cols }})
@@ -144,10 +144,13 @@ ethnic_code_text <- function(data, cols, id_cols = NULL, delim = ",", code_level
     return(NULL)
   } else {
     
-    dat_eth_stand <- ethnic05$v2 |> 
+    dat_eth_stand <- lapply(
+      code_levels, \(code_levels)
+      ethnicNZ:::ethnic05$v2 |> 
       dplyr::select(matches(as.character(code_level))) |> 
       dplyr::distinct() |> 
-      setNames(c("code", "label"))
+      setNames(c("code", "label"))) |> 
+      dplyr::bind_rows() 
     
     dat_eth_text_long <- dat_id |> 
       tidyr::pivot_longer(-c({{ id_cols }}), names_to = "var", values_to = "value") |> 
