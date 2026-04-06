@@ -346,7 +346,7 @@ tidy_ethnicity_codes <- function(
     dat_eth_all <- dat_eth_logic
   }
   
-  ## Combine coluns
+  ## Combine columns
   dat_out <- dat_eth_all |> 
     dplyr::summarise(value = any(.data$value), .by = c(.data$.id, .data$code)) |> 
     dplyr::left_join(dat_eth_stand, by = "code") |>  

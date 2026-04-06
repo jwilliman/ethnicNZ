@@ -120,7 +120,7 @@ ethnic_code_indicators <- function(data, cols, id_cols = NULL, eth_codes = censu
 #' @param data A data frame containing ethnicity questions to code.
 #' @param cols <tidy-select> Columns containing ethnicity text or numeric columns
 #' @param delim Provided deliminator if multiple ethnicities are recorded in a single column with deliminator separating them. 
-#' @param code_level Provide the StatsNZ classification level (1,2,3 or 4) that ethnicity has been entered as. 
+#' @param code_levels Provide the StatsNZ classification level (1,2,3 or 4) that ethnicity has been entered as. 
 #' @param type Indicate whether ethnicity has been recorded as `text` (e.g. Taiwanese) or StatsNZ numeric `code` (e.g. 42116) 
 #' @param check Logical to determine whether to output coded dataset (check = FALSE) or only return uncoded ethnicities (check = TRUE). 
 #'
@@ -230,7 +230,7 @@ ethnic_code_text <- function(data, cols, id_cols = NULL, delim = ",", code_level
 #' @param indicator_codes A vector containing the StatsNZ codes for the ethnicity indicator columns. The length of codes should match the number of columns listed, and be in the same order. Default is as per the standard New Zealand census ethnicity question (used in 2001, 2006, 2013, and 2018). I.e. New Zealand European = 111, Māori = 211, ... .
 #' @param text_cols <tidy-select> Columns containing ethnicity text or numeric columns
 #' @param text_delim Provided deliminator if multiple ethnicities are recorded in a single column with deliminator separating them.
-#' @param text_code_level Provide the StatsNZ classification level (1, 2, 3, or 4) that ethnicity has been entered as. 
+#' @param text_code_levels Provide the StatsNZ classification level (1, 2, 3, or 4) that ethnicity has been entered as. 
 #' @param check Logical to determine whether to output coded dataset (check = FALSE) or only return uncoded ethnicities (check = TRUE). 
 #' @param level_out Provide the StatsNZ classification level (1, 2, 3, or 4) that ethnicity is to be outputted as. 
 #'
@@ -241,7 +241,7 @@ ethnic_code_text <- function(data, cols, id_cols = NULL, delim = ",", code_level
 #' 
 ethnic_code_long <- function(
     data, indicator_cols, indicator_codes = census_2013_question_codes, 
-    text_cols, text_delim = ",", text_code_level = 4, text_code_type = NULL, check = NULL,
+    text_cols, text_delim = ",", text_code_levels = 1:4, text_code_type = NULL, check = NULL,
     id_cols = NULL, 
     level_out = 3
 ) {
@@ -257,7 +257,7 @@ ethnic_code_long <- function(
     indicators = ethnic_code_indicators(
       data, cols = {{ indicator_cols }}, id_cols = {{ id_cols }}, eth_codes = indicator_codes),
     text       = ethnic_code_text(      
-      data, cols = {{ text_cols }}, id_cols = {{ id_cols }}, delim = text_delim, code_level = text_code_level, type = text_code_type, check = check) 
+      data, cols = {{ text_cols }}, id_cols = {{ id_cols }}, delim = text_delim, code_levels = text_code_levels, type = text_code_type, check = check) 
     
   ) |> 
     bind_rows() |> 
@@ -312,7 +312,7 @@ ethnic_code_wide <- function(data, id_cols = NULL, level_out = 1, col_names = et
 #' @param indicator_codes A vector containing the StatsNZ codes for the ethnicity indicator columns. The length of codes should match the number of columns listed, and be in the same order. Default is as per the standard New Zealand census ethnicity question (used in 2001, 2006, 2013, and 2018). I.e. New Zealand European = 111, Māori = 211, ... .
 #' @param text_cols <tidy-select> Columns containing ethnicity text or numeric columns
 #' @param text_delim Provided deliminator if multiple ethnicities are recorded in a single column with deliminator separating them.
-#' @param text_code_level Provide the StatsNZ classification level (1, 2, 3, or 4) that ethnicity has been entered as. 
+#' @param text_code_levels Provide the StatsNZ classification level (1, 2, 3, or 4) that ethnicity has been entered as. 
 #' @param level_out Provide the StatsNZ classification level (1, 2, 3, or 4) that ethnicity is to be outputted as.
 #' @param col_names Names of output columns
 #' @param add_cols Either a logical vector indicating whether to append the
@@ -332,7 +332,7 @@ ethnic_code_wide <- function(data, id_cols = NULL, level_out = 1, col_names = et
 ethnic_code_all <- function(
     data, 
     indicator_cols, indicator_codes = census_2013_question_codes, 
-    text_cols, text_delim = ",", text_code_level = 4, check = NULL,
+    text_cols, text_delim = ",", text_code_levels = 1:4, check = NULL,
     id_cols = NULL, 
     level_out = 1, col_names = ethnicity_level1_codes,
     add_cols = FALSE, eth_prior = NULL, prior_order = ethnicity_level1_prior_order,
@@ -351,7 +351,7 @@ ethnic_code_all <- function(
     indicator_codes = indicator_codes,
     text_cols = {{ text_cols }}, 
     text_delim = text_delim,
-    text_code_level = text_code_level,
+    text_code_levels = text_code_levels,
     check = check,
     id_cols = {{ id_cols }}
   ) |> 
