@@ -151,11 +151,8 @@ ethnic_code_text <- function(data, cols, id_cols = NULL, delim = ",", code_level
         setNames(c("code", "label"))    
     }) |> 
       dplyr::bind_rows() |> 
-<<<<<<< HEAD
       dplyr::mutate(label_lower = tolower(.data$label))
-=======
-      dplyr::mutate(label_lower = tolower(label))
->>>>>>> 5ea17e54fcf40bed03dfc76cc1bd608d8cf1abd9
+
     
     dat_eth_text_long <- dat_id |> 
       tidyr::pivot_longer(-c({{ id_cols }}), names_to = "var", values_to = "value") |> 
@@ -174,11 +171,8 @@ ethnic_code_text <- function(data, cols, id_cols = NULL, delim = ",", code_level
       
       dat_eth_text_label <- dat_eth_text_long |> 
         dplyr::select(c({{ id_cols }}, label = value)) |> 
-<<<<<<< HEAD
         dplyr::mutate(label_lower = tolower(.data$label)) |> 
-=======
-        dplyr::mutate(label_lower = tolower(label)) |> 
->>>>>>> 5ea17e54fcf40bed03dfc76cc1bd608d8cf1abd9
+
         dplyr::left_join(dat_eth_stand, by = "label_lower") |> 
         dplyr::select(c({{ id_cols }}, code, label))
       
@@ -190,7 +184,7 @@ ethnic_code_text <- function(data, cols, id_cols = NULL, delim = ",", code_level
         dplyr::mutate(code = as.integer(.data$code)) |>
         dplyr::left_join(dat_eth_stand, by = "code") |> 
         dplyr::select(c({{ id_cols }}, code, label))
-      
+       
     }
     
     if(!is.null(check)) {
