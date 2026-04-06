@@ -150,7 +150,8 @@ ethnic_code_text <- function(data, cols, id_cols = NULL, delim = ",", code_level
         dplyr::distinct() |> 
         setNames(c("code", "label"))    
     }) |> 
-      dplyr::bind_rows() 
+      dplyr::bind_rows() |> 
+      dplyr::mutate(label_lower = tolower(.data$label))
     
     dat_eth_text_long <- dat_id |> 
       tidyr::pivot_longer(-c({{ id_cols }}), names_to = "var", values_to = "value") |> 
@@ -168,18 +169,19 @@ ethnic_code_text <- function(data, cols, id_cols = NULL, delim = ",", code_level
     if(type == "text") {
       
       dat_eth_text_label <- dat_eth_text_long |> 
-        select(c({{ id_cols }}, label = value)) |> 
-        left_join(dat_eth_stand, by = "label") |> 
-        select(c({{ id_cols }}, code, label))
+        dplyr::select(c({{ id_cols }}, label = value)) |> 
+        dplyr::mutate(label_lower = tolower(.data$label)) |> 
+        dplyr::left_join(dat_eth_stand, by = "label_lower") |> 
+        dplyr::select(c({{ id_cols }}, code, label))
       
       ## If ethnicity is already recorded as numeric code.
     } else if (type == "code") {
       
       dat_eth_text_label <- dat_eth_text_long |>
-        select(c({{ id_cols }}, code = value)) |>
-        mutate(code = as.integer(.data$code)) |>
-        left_join(dat_eth_stand, by = "code") |> 
-        select(c({{ id_cols }}, code, label))
+        dplyr::select(c({{ id_cols }}, code = value)) |>
+        dplyr::mutate(code = as.integer(.data$code)) |>
+        dplyr::left_join(dat_eth_stand, by = "code") |> 
+        dplyr::select(c({{ id_cols }}, code, label))
       
     }
     
