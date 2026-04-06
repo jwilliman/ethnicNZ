@@ -145,7 +145,7 @@ ethnic_code_text <- function(data, cols, id_cols = NULL, delim = ",", code_level
   } else {
     
     dat_eth_stand <- lapply(
-      code_levels, \(code_levels)
+      code_levels, \(code_level)
       ethnicNZ:::ethnic05$v2 |> 
       dplyr::select(matches(as.character(code_level))) |> 
       dplyr::distinct() |> 
