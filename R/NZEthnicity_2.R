@@ -172,8 +172,8 @@ ethnic_code_text <- function(data, cols, id_cols = NULL, delim = ",", code_level
       dat_eth_text_label <- dat_eth_text_long |> 
         dplyr::select(c({{ id_cols }}, label = value)) |> 
         dplyr::mutate(label_lower = tolower(.data$label)) |> 
-
-        dplyr::left_join(dat_eth_stand, by = "label_lower") |> 
+        dplyr::left_join(
+          dat_eth_stand |> select(-label), by = "label_lower") |> 
         dplyr::select(c({{ id_cols }}, code, label))
       
       ## If ethnicity is already recorded as numeric code.
